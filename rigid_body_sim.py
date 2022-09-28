@@ -7,7 +7,7 @@ import draw_data
 
 
 #rigid body classes
-class rigid_shape:
+class collision_shape:
     def __init__(self, shape_type, dimensions, location, orientation, velocity, angular_velocity, mass):
         self.shape_type = shape_type
         self.parent = None
@@ -184,6 +184,12 @@ class combined_body:
             shape = self.components[index]
             self.location_mass_derivatives.append(geometry_utils.to_world_coords(shape, shape.COM) / self.mass - second_term)
             #d_sl/d_mass = d_world_COM/d_mass / self.mass - world_COM / self.mass / self.mass
+
+        #set the indices of component shapes as not interacting with each other
+        self.fixed_contacts = []
+        for i in np.arange(len(self.components)):
+            for j in np.arange(i + 1, len(self.components)):
+                self.fixed_contacts.append((self.components[i], self.components[j]))
         
     def set_component_velocities_and_angular_velocities(self):
         for i in np.arange(len(self.components)):
@@ -210,7 +216,7 @@ def make_combined_boxes_rigid_body(info, location, velocity, orientation, angula
         x,y,z = coords
         local_loc = np.array([x, y, z])
         center += local_loc
-        internal_shapes.append(rigid_shape("box", (1.,1.,1.), local_loc, orientation, np.array([0., 0., 0.]), np.array([0., 0., 0.]), masses[count]))
+        internal_shapes.append(collision_shape("box", (1.,1.,1.), local_loc, orientation, np.array([0., 0., 0.]), np.array([0., 0., 0.]), masses[count]))
         count += 1
     center /= len(info)
     for a_shape in internal_shapes:
@@ -227,56 +233,64 @@ def make_combined_boxes_rigid_body(info, location, velocity, orientation, angula
 
 
 
-def run_sim(start_time, dt, total_time, shapes, combined, dir_name):
+def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, writing_to_files, find_derivatives):
     time = start_time
-    
-    #set up data storage
-    loc_file = os.path.join(dir_name, "data_locations.csv")
-    outfile = open(loc_file, "w")
-    outfile.write("time")
-    count = 1
-    for shape in shapes:
-        outfile.write(",shape_"+str(count)+"_x")
-        outfile.write(",shape_"+str(count)+"_y")
-        outfile.write(",shape_"+str(count)+"_z")
-        outfile.write(",shape_"+str(count)+"_quaternion_i")
-        outfile.write(",shape_"+str(count)+"_quaternion_j")
-        outfile.write(",shape_"+str(count)+"_quaternion_k")
-        outfile.write(",shape_"+str(count)+"_quaternion_s")
-        count += 1
-    outfile.write("\n")
+
+    if writing_to_files:
+        # make directory for simulation files
+        testNum = 1
+        while os.path.exists("test" + str(testNum)):
+            testNum += 1
+        dir_name = "test" + str(testNum)
+        os.mkdir(dir_name)
+
+        #set up data storage
+        loc_file = os.path.join(dir_name, "data_locations.csv")
+        outfile = open(loc_file, "w")
+        outfile.write("time")
+        count = 1
+        for shape in shapes:
+            outfile.write(",shape_"+str(count)+"_x")
+            outfile.write(",shape_"+str(count)+"_y")
+            outfile.write(",shape_"+str(count)+"_z")
+            outfile.write(",shape_"+str(count)+"_quaternion_i")
+            outfile.write(",shape_"+str(count)+"_quaternion_j")
+            outfile.write(",shape_"+str(count)+"_quaternion_k")
+            outfile.write(",shape_"+str(count)+"_quaternion_s")
+            count += 1
+        outfile.write("\n")
 
 
-    energies_file = os.path.join(dir_name, "data_energy.csv")
-    energies_outfile= open(energies_file, "w")
-    energies_outfile.write("time,KE,PE,total energy\n")
-    #momenta_file = os.path.join(dir_name, "data_momenta.csv")
-    #angular momentum file
+        energies_file = os.path.join(dir_name, "data_energy.csv")
+        energies_outfile= open(energies_file, "w")
+        energies_outfile.write("time,KE,PE,total energy\n")
+        #momenta_file = os.path.join(dir_name, "data_momenta.csv")
+        #angular momentum file
 
     combined_script = []
-    find_derivatives = True
 
     step=0
     while(time < total_time):
         if True:#(step % 40 == 0):#
             print("simulation\tt =",time)
-        #record
-        outfile.write(str(time))
-        energies_outfile.write(str(time))
-        total_KE = 0
-        total_PE = 0
-        total_energy = 0
-        for shape in shapes:
-            total_KE += shape.KE
-            total_PE += shape.PE
-            total_energy += shape.KE + shape.PE
-        energies_outfile.write(","+str(total_KE)+","+str(total_PE) + "," + str(total_energy) + "\n")
-        for shape in shapes:
-            for coord in shape.location:
-                outfile.write(","+str(coord))
-            for coord in shape.orientation:
-                outfile.write(","+str(coord))
-        outfile.write("\n")
+        if writing_to_files:
+            #record
+            outfile.write(str(time))
+            energies_outfile.write(str(time))
+            total_KE = 0
+            total_PE = 0
+            total_energy = 0
+            for shape in shapes:
+                total_KE += shape.KE
+                total_PE += shape.PE
+                total_energy += shape.KE + shape.PE
+            energies_outfile.write(","+str(total_KE)+","+str(total_PE) + "," + str(total_energy) + "\n")
+            for shape in shapes:
+                for coord in shape.location:
+                    outfile.write(","+str(coord))
+                for coord in shape.orientation:
+                    outfile.write(","+str(coord))
+            outfile.write("\n")
         
         #move
         for shape in shapes:
@@ -506,7 +520,6 @@ def run_sim(start_time, dt, total_time, shapes, combined, dir_name):
                     relative_motion_friction_magn_mass_derivatives.append(1. / relative_motion_friction_magn * relative_motion_friction * friction_impulse_mass_derivatives[j])
                 mu_normal_friction_magn = mu*normal_impulse_magn
                 mu_normal_friction_magn_mass_derivatives = []
-                mu_normal_friction_magn_mu_derivative = []
                 for j in np.arange(len(shapes)):
                     mu_normal_friction_magn_mass_derivatives.append(normal_impulse_magn_mass_derivatives[j] * mu)
                 mu_normal_friction_magn_mu_derivative = normal_impulse_magn
@@ -569,95 +582,134 @@ def run_sim(start_time, dt, total_time, shapes, combined, dir_name):
         #to do: make this symplectic (velocity verlet)
         time+=dt
         step+=1
-        
-    outfile.close()
 
-    return shapes[0].velocity[2], shapes[0].velocity_mu_derivative[2]#friction0[2], friction_mu_derivatives0[2]#
+    if writing_to_files:
+        outfile.close()
+
+        print("writing simulation files")
+        file_handling.write_simulation_files(shapes, loc_file, dir_name, dt, 24)
+
+    #if find_derivatives:
+    #    return shapes[0].velocity[2], shapes[0].velocity_mu_derivative[2]#friction0[2], friction_mu_derivatives0[2]#
 
 
-#set time
-time = 0
-dt = 0.001
-total_time = 0.002#10
-
-#make directory for simulation files
-testNum = 1
-while os.path.exists("test"+str(testNum)):
-    testNum += 1
-dir_name = "test"+str(testNum)
-os.mkdir(dir_name)
-
-#load and instantiate shapes
+#load shape info
 print()
 combined_info = file_handling.read_combined_boxes_rigid_body_file("try1.txt")
 rotation = geometry_utils.normalize(np.array([0., 0.3, 0., 0.95]))
-###
-masses = np.linspace(0.5, 5., 1000)
-mu_values = np.linspace(0, 0.5, 1000)
-result = []
-result_deriv = []
-result_deriv_estimate = []
-indices = (1,1)
 
-outermost_count = 0
-#for mass in masses:
-for mu in mu_values:
+
+
+def run_search_loop(shape_to_alter_index, doing_friction, values_to_count):
+    result = []
+    result_deriv = []
+    result_deriv_estimate = []
+    indices = (1,1)
+
+    outermost_count = 0
+
+    for value in values_to_count:
+        component_masses = [1., 1.]
+        if not doing_friction:
+            component_masses[shape_to_alter_index] = value
+        combined = make_combined_boxes_rigid_body(combined_info, np.array([0., 0.4999804, 5.]), np.array([0., 0., -1.]), rotation, np.array([0., 0., 0.]), component_masses)
+        #print(combined.components[0].location)
+
+        #code to print out the initial starting location
+        '''result.append(combined.location[2])#(combined.I_inv[indices[0]][indices[1]])
+        result_deriv.append(combined.location_mass_derivatives[0][2])#(combined.I_inv_mass_derivatives[0][indices[0]][indices[1]])
+    
+        if outermost_count != 0:
+            result_deriv_estimate.append((result[outermost_count]-result[outermost_count - 1]) / (value - values_to_count[outermost_count - 1]))
+        else:
+            result_deriv_estimate.append(0)
+        outermost_count += 1
+        continue'''
+
+        shapes = []
+        shapes += combined.components
+        #create list of shape pairs that do not require collision testing since they are connected by a joint
+        fixed_contact_shapes = combined.fixed_contacts
+
+        #set coefficients of friction for all shapes
+        shape_shape_frictions = {}
+        '''count = 0
+        for shape in shapes:
+            this_shape_frictions = {}
+            for shape2 in shapes[count+1:]:
+                this_shape_frictions[shape2] = 0.5          #set friction coefficient to 0.5 for now
+            shape_shape_frictions[shape] = this_shape_frictions
+            count += 1'''
+        shape_ground_frictions = {}
+        for shape in shapes:
+            shape_ground_frictions[shape] = 0.02             #set friction coefficient to 0.02 for now
+        if doing_friction:
+            shape_ground_frictions[shapes[shape_to_alter_index]] = value
+
+        # set time
+        time = 0
+        dt = 0.001
+        total_time = 0.002#10
+
+        #run the simulation
+        #res1, res1_mu_deriv =
+        run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, False, True)
+
+
+        result.append(shapes[shape_to_alter_index].velocity[2])
+        if doing_friction:
+            result_deriv.append(shapes[shape_to_alter_index].velocity_mu_derivative[2])
+        else:
+            result_deriv.append(shapes[shape_to_alter_index].velocity_mass_derivative[2])
+        #result.append(res1)
+        #result_deriv.append(res1_mu_deriv)
+
+        if outermost_count != 0:
+            result_deriv_estimate.append((result[outermost_count]-result[outermost_count - 1]) / (value - values_to_count[outermost_count - 1]))
+        else:
+            result_deriv_estimate.append(0)
+        outermost_count += 1
+
+    draw_data.plot_data(values_to_count, result, result_deriv, result_deriv_estimate)
+    for i in range(len(values_to_count)):
+        print(result_deriv_estimate[i] - result_deriv[i])
+
+
+def ordinary_run():
     component_masses = [1., 1.]
     combined = make_combined_boxes_rigid_body(combined_info, np.array([0., 0.4999804, 5.]), np.array([0., 0., -1.]), rotation, np.array([0., 0., 0.]), component_masses)
-    #print(combined.components[0].location)
 
-    '''result.append(combined.location[2])#(combined.I_inv[indices[0]][indices[1]])
-    result_deriv.append(combined.location_mass_derivatives[0][2])#(combined.I_inv_mass_derivatives[0][indices[0]][indices[1]])
-    
-    if outermost_count != 0:
-        result_deriv_estimate.append((result[outermost_count]-result[outermost_count - 1]) / (mass - masses[outermost_count - 1]))
-    else:
-        result_deriv_estimate.append(0)
-    outermost_count += 1'''
-###
     shapes = []
     shapes += combined.components
+    # create list of shape pairs that do not require collision testing since they are connected by a joint
+    fixed_contact_shapes = combined.fixed_contacts
 
-    #set coefficients of friction for all shapes
+    # set coefficients of friction for all shapes
     shape_shape_frictions = {}
     count = 0
     for shape in shapes:
         this_shape_frictions = {}
-        for shape2 in shapes[count+1:]:
-            this_shape_frictions[shape2] = 0.5          #set friction coefficient to 0.5 for now
+        for shape2 in shapes[count + 1:]:
+            this_shape_frictions[shape2] = 0.5  # set friction coefficient to 0.5 for now
         shape_shape_frictions[shape] = this_shape_frictions
         count += 1
     shape_ground_frictions = {}
-    #for shape in shapes:
-    #    shape_ground_frictions[shape] = 0.02             #set friction coefficient to 0.02 for now
-    shape_ground_frictions[shapes[0]] = mu
-    shape_ground_frictions[shapes[1]] = 0.02
-        
+    for shape in shapes:
+        shape_ground_frictions[shape] = 0.02  # set friction coefficient to 0.02 for now
 
-    #create list of shape pairs that do not require collision testing since they are connected by a joint
-    fixed_contact_shapes = []
-    for i in np.arange(len(combined.components)):
-        for j in np.arange(i+1,len(combined.components)):
-            fixed_contact_shapes.append((combined.components[i], combined.components[j]))
+    # set time
+    time = 0
+    dt = 0.001
+    total_time = 10
 
-    #run the simulation
-    res1, res1_mass_deriv = run_sim(time, dt, total_time, shapes, combined, dir_name)
+    # run the simulation
+    res1, res1_mu_deriv = run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions,shape_ground_frictions, fixed_contact_shapes, True, False)
 
-    #result.append(shapes[0].velocity[1])
-    #result_deriv.append(shapes[0].velocity_mass_derivative[1])
-    result.append(res1)
-    result_deriv.append(res1_mass_deriv)
-    
-    if outermost_count != 0:
-        result_deriv_estimate.append((result[outermost_count]-result[outermost_count - 1]) / (mu - mu_values[outermost_count - 1]))#(mass - masses[outermost_count - 1]))
-    else:
-        result_deriv_estimate.append(0)
-    outermost_count += 1
-    
-draw_data.plot_data(mu_values, result, result_deriv, result_deriv_estimate)
-for i in range(len(masses)):
-    print(result_deriv_estimate[i] - result_deriv[i])
-exit()
 
-print("writing simulation files")
-file_handling.write_simulation_files(shapes, loc_file, dir_name, dt, 24)
+
+masses = np.linspace(0.5, 5., 1000)
+mu_values = np.linspace(0, 0.5, 1000)
+
+#ordinary_run()
+#run_search_loop(0, False, masses)
+run_search_loop(0, True, mu_values)
