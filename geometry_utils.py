@@ -230,6 +230,24 @@ def matrix_exponential(screw_axis, theta):
         [0., 0., 0., 1.]
     ])
 
+def hinge_joint_rotation_matrix(theta, hinge_location):
+    c = np.cos(theta)
+    s = np.sin(theta)
+    E = np.array([[c, s, 0.],
+                  [-s, c, 0.],
+                  [0., 0., 1.]])
+    zeros_matrix = np.zeros((3,3))
+    X_J = np.block([
+        [E, zeros_matrix],
+        [zeros_matrix, E]
+    ])
+    X_T = np.block()
+
+#joint subspace matrix definitions
+hinge_joint_motion_subspace = np.array([0., 0., 1., 0., 0., 0.]).T
+prismatic_joint_motion_subspace = np.array([0., 0., 0., 0., 0., 1.]).T
+free_joint_motion_subspace = np.identity(6)
+
 
 
 #functions for geometry involving points and lines

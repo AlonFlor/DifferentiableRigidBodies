@@ -585,14 +585,21 @@ def shape_ground_apply_impulse(shape, impulse, r, I_inv):
 
 
 def get_shape_shape_tangential_velocity(shape1, shape2, contact_location, normal):
+    print("normal",normal)
     shape1_velocity = geometry_utils.velocity_of_point(shape1, contact_location)
     shape2_velocity = geometry_utils.velocity_of_point(shape2, contact_location)
+    print("shape1_velocity",shape1_velocity)
+    print("shape2_velocity",shape2_velocity)
 
     shape1_velocity_normal = normal*np.dot(shape1_velocity, normal)
     shape2_velocity_normal = normal*np.dot(shape2_velocity, normal)
+    print("shape1_velocity_normal",shape1_velocity_normal)
+    print("shape2_velocity_normal",shape2_velocity_normal)
 
     shape1_velocity_perpendicular = shape1_velocity - shape1_velocity_normal
     shape2_velocity_perpendicular = shape2_velocity - shape2_velocity_normal
+    print("shape1_velocity_perpendicular",shape1_velocity_perpendicular)
+    print("shape2_velocity_perpendicular",shape2_velocity_perpendicular)
 
     return shape1_velocity_perpendicular - shape2_velocity_perpendicular
 

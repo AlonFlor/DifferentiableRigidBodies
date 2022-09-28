@@ -7,8 +7,9 @@ import file_handling
 
 #rigid body classes
 class shape:
-    def __init__(self, shape_type, dimensions, location, orientation, velocity, angular_velocity, internal_points = None):
+    def __init__(self, shape_type, dimensions, location, orientation, velocity, angular_velocity):
         self.shape_type = shape_type
+        self.parent = None
         
         #add mesh-related data
         if self.shape_type == "box":
@@ -38,7 +39,6 @@ class shape:
             self.vertices = vertices
             self.face_normals = face_normals
             self.faces = faces
-            
         elif self.shape_type == "uncapped cylinder":
             self.radius, self.z_len = dimensions
             self.end1 = np.array([0.,0.,-1*self.z_len/2])
@@ -62,33 +62,22 @@ class shape:
         self.center = np.array([0., 0., 0.])
         #add moment of inertia and center of mass
         self.I = np.zeros((3,3))
-        self.COM = np.array([0.,0.,0.])
-        if internal_points is not None:
-            points = internal_points[:,0]
-            masses = internal_points[:,1]
-            self.mass=0
-            for mass in masses:
-                self.mass += mass
-            for mass,point in zip(masses, points):
-                self.I += mass*(np.square(point)*np.identity(3) - np.outer(point, point))
-                self.COM += mass*point
-        else:
-            self.COM = self.center
-            if self.shape_type == "box":
-                #uniform cuboid
-                self.I[0][0] = self.mass*(self.y_len*self.y_len + self.z_len*self.z_len)/12.
-                self.I[1][1] = self.mass*(self.x_len*self.x_len + self.z_len*self.z_len)/12.
-                self.I[2][2] = self.mass*(self.x_len*self.x_len + self.y_len*self.y_len)/12.
-            elif self.shape_type == "sphere":
-                #uniform sphere
-                self.I[0][0] = 0.4*self.mass*self.radius*self.radius
-                self.I[1][1] = self.I[0][0]
-                self.I[2][2] = self.I[0][0]
-            elif self.shape_type == "uncapped cylinder":
-                #uniform cylinder
-                self.I[0][0] = self.mass*(3*self.radius*self.radius + self.z_len*self.z_len)
-                self.I[1][1] = self.I[0][0]
-                self.I[2][2] = 0.5*self.mass*self.radius*self.radius
+        self.COM = self.center
+        if self.shape_type == "box":
+            #uniform cuboid
+            self.I[0][0] = self.mass*(self.y_len*self.y_len + self.z_len*self.z_len)/12.
+            self.I[1][1] = self.mass*(self.x_len*self.x_len + self.z_len*self.z_len)/12.
+            self.I[2][2] = self.mass*(self.x_len*self.x_len + self.y_len*self.y_len)/12.
+        elif self.shape_type == "sphere":
+            #uniform sphere
+            self.I[0][0] = 0.4*self.mass*self.radius*self.radius
+            self.I[1][1] = self.I[0][0]
+            self.I[2][2] = self.I[0][0]
+        elif self.shape_type == "uncapped cylinder":
+            #uniform cylinder
+            self.I[0][0] = self.mass*(3*self.radius*self.radius + self.z_len*self.z_len)
+            self.I[1][1] = self.I[0][0]
+            self.I[2][2] = 0.5*self.mass*self.radius*self.radius
         self.I_inv = np.linalg.inv(self.I)
         #initialize orientation derivative
         self.orientation_derivative = geometry_utils.orientation_derivative(self.orientation, self.angular_velocity)
@@ -110,12 +99,78 @@ class shape:
         elif self.shape_type == "uncapped cylinder":
             self.signed_distance = contact_code.generate_signed_distance_function_cylinder(self.radius)
 
+class combined_body:
+    def __init__(self, components, velocity, angular_velocity):
+        self.components = components
+        for shape in components:
+            shape.parent = self
+        
+        ##add location-related data
+        self.orientation = np.array([0.0, 0.0, 0.0, 1.0])
+        self.velocity = velocity
+        self.angular_velocity = angular_velocity
+            
+        #add mass and center of mass information
+        self.mass= 0.
+        world_COM = np.array([0., 0., 0.])
+        for shape in self.components:
+            self.mass += shape.mass
+            world_COM += shape.mass*geometry_utils.to_world_coords(shape, shape.COM)
+        self.location = world_COM / self.mass
+        self.COM = np.array([0., 0., 0.])
+        self.center = self.COM
 
+        #component rotations from this shape to child shape
+        #component translations from this shape to child shape
+        self.component_rotations = []
+        self.component_translations = []
+        for shape in self.components:
+            self.component_rotations.append(shape.orientation + 0.)
+            self.component_translations.append(shape.location - self.location)
+
+        #get moment of inertia
+        self.I = np.zeros((3,3))
+        for index in np.arange(len(self.components)):
+            displacement = self.component_translations[index]
+            translated_shape_I = shape.I + shape.mass*(np.dot(displacement, displacement)*np.identity(3) - np.outer(displacement, displacement))
+            R = geometry_utils.quaternion_to_rotation_matrix(self.component_rotations[index])
+            self.I += np.matmul(R, np.matmul(translated_shape_I, R.T))
+        self.I_inv = np.linalg.inv(self.I)
+        self.orientation_derivative = geometry_utils.orientation_derivative(self.orientation, self.angular_velocity)
+        
+    def set_component_velocities_and_angular_velocities(self):
+        for i in np.arange(len(self.components)):
+            shape = self.components[i]
+            displacement = self.component_translations[i]
+            displacement_w = geometry_utils.to_world_coords(self, displacement)
+            shape_velocity_w = geometry_utils.velocity_of_point(self, displacement_w)
+            shape.velocity = shape_velocity_w
+            shape.angular_velocity = self.angular_velocity#self.component_rotations[index]
+
+'''class articulated_body(self, handle, child_articulated_bodies):
+    #the articulated body is a kinematic tree
+    self.handle = handle
+    self.child_articulated_bodies = child_articulated_bodies
+    
+    #set up articulated inertia
+    zeros_matrix = np.zeros((3,3))
+    mass_matrix = handle.mass*np.identity(3)
+    self.spatial_articulated_inertia = np.block([
+        [mass_matrix, zeros_matrix],
+        [zeros_matrix, handle.I]
+        ])
+    for child_articulated_body in child_articulated_bodies:
+        IA_child = child_articulated_body.spatial_articulated_inertia
+        S = geometry_utils.hinge_joint_motion_subspace
+        IA_child_S = np.matmul(IA_child, S)
+        middle_part = np.linalg.inv(np.matmul(S.T, IA_child_S))
+        self.spatial_articulated_inertia += IA_child - np.matmul(IA_child_S, np.matmul(middle_part, IA_child_S.T))
+    
 class joint:
     def __init__(self, rotation_axis, shape, hinge_location):
         self.shape = shape
         self.angle = 0.
-        self.screw_axis = np.append(rotation_axis, np.cross(-1*rotation_axis, hinge_location))
+        self.screw_axis = np.append(rotation_axis, np.cross(-1*rotation_axis, hinge_location))'''
 
 
 
@@ -127,34 +182,20 @@ dir_name = "test"+str(testNum)
 os.mkdir(dir_name)
 
 #load and instantiate shapes
-#box1 = shape("box", (1.,1.,1.), np.array([-3.0, 5.0, 0.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([1., -1., 0.]), np.array([0.,np.pi/2,0.]))
-#box1 = shape("box", (1.,1.,1.), np.array([0.0, 0, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 2.]), np.array([0., 0., 0.]))
-#box1 = shape("box", (1.,1.,1.), np.array([1.0, 0, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 2.]), np.array([0., 0., 0.]))
-#box1 = shape("box", (1.,1.,1.), np.array([0.0, -0.5, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 2.]), np.array([0., 0., 0.]))
-box1 = shape("box", (1.,1.,1.), np.array([1.0, -0.5, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 2.]), np.array([0., 0., 0.]))
-long_flat_box = shape("box", (7.,0.1,4.), np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 0.]), np.array([0., 0., 0.]))
 print()
+box1 = shape("box", (1.,1.,1.), np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 0.]), np.array([0., 0., 0.]))
+box2 = shape("box", (1.,1.,1.), np.array([2.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 0.]), np.array([0., 0., 0.]))
+box3 = shape("box", (1.,1.,1.), np.array([0.0, 0.0, 2.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 0.]), np.array([0., 0., 0.]))
+box4 = shape("box", (1.,1.,1.), np.array([0.0, 0.0, 4.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 0.]), np.array([0., 0., 0.]))
+box5 = shape("box", (1.,1.,1.), np.array([1.5, 0.0, 3.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 0.]), np.array([0., 0., 0.]))
+combined_1 = combined_body([box1, box2], np.array([0., 0., 0.]), np.array([0., 0., 0.]))
+combined_2 = combined_body([box3, box4, box5], np.array([0., 0., -1.]), np.array([0., 0., 0.]))
 shapes = []
 shapes.append(box1)
-shapes.append(long_flat_box)
-
-#box1 = shape("box", (1.,1.,1.), np.array([0.0, 0, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 2.]), np.array([0., 0., 0.]))
-#rotate_box = geometry_utils.rotation_to_quaternion(np.pi/5, np.array([0., 1., 0.]))
-#box1 = shape("box", (1.,1.,1.), np.array([0.0, 0, -5.0]), rotate_box, np.array([0., 0., 2.]), np.array([0., 0., 0.]))
-
-rotate_cylinder = geometry_utils.rotation_to_quaternion(np.pi/2, np.array([0., 1., 0.]))
-#cylinder1 = shape("uncapped cylinder", (.25,5.), np.array([0.0, 0.0, 0.0]), rotate_cylinder, np.array([0., 0., 0.]), np.array([0., 0., 0.]))
-#cylinder2 = shape("uncapped cylinder", (.25,5.), np.array([0.0, 0, -5.0]), rotate_cylinder, np.array([0., 0.1, 2.]), np.array([0., 0., 0.]))
-#rotate_cylinder2 = geometry_utils.rotation_to_quaternion(np.pi, np.array([0., 1., 0.]))
-#cylinder3 = shape("uncapped cylinder", (.25,5.), np.array([0.0, 5.0, 0.0]), rotate_cylinder2, np.array([0., -1.0, 0.1]), np.array([0., 0., 0.]))
-
-#sphere1 = shape("sphere", (.5), np.array([0.0, 0, 0.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 0.]), np.array([0., 0., 0.]))
-#sphere2 = shape("sphere", (.5), np.array([0.0, 0.1, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 2.]), np.array([0., 0., 0.]))
-
-#cylinder4 = shape("uncapped cylinder", (.25,5.), np.array([0.0, 0.25, -5.0]), rotate_cylinder, np.array([0., 0., 2.]), np.array([0., 0., 0.]))
-
-#shapes.append(box1)
-#shapes.append(cylinder4)
+shapes.append(box2)
+shapes.append(box3)
+shapes.append(box4)
+shapes.append(box5)
 
 '''shift = np.array([-12.5, 0., 0.])
 arm_base = shape("box", (1.,1.,1.), np.array([0.0, 0.0, 0.0])+shift, np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 0.]), np.array([0., 0., 0.]))
@@ -164,11 +205,11 @@ shapes.append(arm_upper)
 arm_fore = shape("box", (1.,1.,5.), np.array([0.0, 0.0, 9.0])+shift, np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 0.]), np.array([0., 0., 0.]))
 shapes.append(arm_fore)
 arm_hand = shape("box", (1.,1.,1.), np.array([0.0, 0.0, 12.5])+shift, np.array([0.0, 0.0, 0.0, 1.0]), np.array([0., 0., 0.]), np.array([0., 0., 0.]))
-shapes.append(arm_hand)'''
+shapes.append(arm_hand)
 
 #create joints
 joints = []
-'''base_azimuth_rotate_joint = joint(np.array([0., 1., 0.]), arm_base, arm_base.location)
+base_azimuth_rotate_joint = joint(np.array([0., 1., 0.]), arm_base, arm_base.location)
 joints.append(base_azimuth_rotate_joint)
 base_upper_altitude_joint = joint(np.array([-1., 0., 0.]), arm_upper, arm_base.location)
 joints.append(base_upper_altitude_joint)
@@ -179,9 +220,15 @@ joints.append(wrist_joint)'''
 
 #create list of shape pairs that do not require collision testing since they are connected by a joint
 fixed_contact_shapes = []
+for i in np.arange(len(combined_1.components)):
+    for j in np.arange(i+1,len(combined_1.components)):
+        fixed_contact_shapes.append((combined_1.components[i], combined_1.components[j]))
+for i in np.arange(len(combined_2.components)):
+    for j in np.arange(i+1,len(combined_2.components)):
+        fixed_contact_shapes.append((combined_2.components[i], combined_2.components[j]))
 '''fixed_contact_shapes.append((arm_base, arm_upper))
 fixed_contact_shapes.append((arm_upper, arm_fore))
-fixed_contact_shapes.append((arm_fore, arm_hand))'''
+fixed_contact_shapes.append((arm_fore, arm_hand))
 
 original_locs_transformation_matrices = []
 for i in np.arange(len(joints)):
@@ -198,7 +245,7 @@ def joints_reposition(angles):
         old_location = joints[i].shape.location
         joints[i].shape.orientation, joints[i].shape.location = geometry_utils.from_transformation_matrix(np.matmul(transformation_matrix, original_locs_transformation_matrices[i]))
         joints[i].shape.velocity = (joints[i].shape.location - old_location)/dt
-        joints[i].shape.angular_velocity = geometry_utils.angular_velocity(joints[i].shape.orientation, (joints[i].shape.orientation - old_orientation)/dt)
+        joints[i].shape.angular_velocity = geometry_utils.angular_velocity(joints[i].shape.orientation, (joints[i].shape.orientation - old_orientation)/dt)'''
 
 
 #set time
@@ -224,9 +271,9 @@ for shape in shapes:
     outfile.write(",shape_"+str(count)+"_x")
     outfile.write(",shape_"+str(count)+"_y")
     outfile.write(",shape_"+str(count)+"_z")
-    outfile.write(",shape_"+str(count)+"_quaternion_v1")
-    outfile.write(",shape_"+str(count)+"_quaternion_v2")
-    outfile.write(",shape_"+str(count)+"_quaternion_v3")
+    outfile.write(",shape_"+str(count)+"_quaternion_i")
+    outfile.write(",shape_"+str(count)+"_quaternion_j")
+    outfile.write(",shape_"+str(count)+"_quaternion_k")
     outfile.write(",shape_"+str(count)+"_quaternion_s")
     count += 1
 outfile.write("\n")
@@ -268,6 +315,14 @@ while(time < total_time):
         shape.orientation_derivative = geometry_utils.orientation_derivative(shape.orientation, shape.angular_velocity)
         shape.KE = 0.5*shape.mass*np.square(np.linalg.norm(shape.velocity)) + 0.5*np.dot(np.matmul(shape.I,shape.angular_velocity), shape.angular_velocity)
         shape.PE = 0
+    combined_1.location += dt*combined_1.velocity
+    combined_1.orientation += dt*combined_1.orientation_derivative
+    combined_1.orientation = geometry_utils.normalize(combined_1.orientation)
+    combined_1.orientation_derivative = geometry_utils.orientation_derivative(combined_1.orientation, combined_1.angular_velocity)
+    combined_2.location += dt*combined_2.velocity
+    combined_2.orientation += dt*combined_2.orientation_derivative
+    combined_2.orientation = geometry_utils.normalize(combined_2.orientation)
+    combined_2.orientation_derivative = geometry_utils.orientation_derivative(combined_2.orientation, combined_2.angular_velocity)
 
     ##apply external forces
     #for shape in shapes:
@@ -301,15 +356,49 @@ while(time < total_time):
             ground_contacts_check_list.append(shapes[i])
     
     #main collision detection 
-    shape_shape_contacts = contact_code.shape_shape_collision_detection(collision_check_list)
-    ground_contacts = []#no ground contacts   contact_code.shape_ground_collision_detection(ground_contacts_check_list)#  
+    shape_shape_contacts_low_level = contact_code.shape_shape_collision_detection(collision_check_list)
+    ground_contacts_low_level = []#no ground contacts   contact_code.shape_ground_collision_detection(ground_contacts_check_list)#  
 
+    #collision handling is done on the highest shape level, so get the parents of all shapes in contacts
+    shape_shape_contacts = []
+    ground_contacts = []
+    for shape_pair, contact in shape_shape_contacts_low_level:
+        shape1, shape2 = shape_pair
+        new_shape1 = shape1
+        new_shape2 = shape2
+        if shape1.parent is not None:
+            new_shape1 = shape1.parent
+        if shape2.parent is not None:
+            new_shape2 = shape2.parent
+        shape_shape_contacts.append(((new_shape1, new_shape2), contact))
+    for shape, contact in ground_contacts_low_level:
+        new_shape = shape
+        if shape.parent is not None:
+            new_shape = shape.parent
+        ground_contacts.append((new_shape, contact))
+
+    #empty impulse arrays to be filled during collision handling and used for calculating friction
     shape_shape_contact_impulses = []
     ground_contact_impulses = []
     for i in np.arange(len(shape_shape_contacts)):
         shape_shape_contact_impulses.append(np.array([0., 0., 0.]))
     for i in np.arange(len(ground_contacts)):
         ground_contact_impulses.append(np.array([0., 0., 0.]))
+
+    #tangential velocity arrays calculated before impulses, for use in calculating friction
+    shape_shape_contact_tangential_velocities = []
+    ground_contact_tangential_velocities = []
+    for i in np.arange(len(shape_shape_contacts)):
+        shape_pair, contact = shape_shape_contacts[i]
+        shape1, shape2 = shape_pair
+        world_point, normal = contact
+        tangential_velocity = contact_code.get_shape_shape_tangential_velocity(shape1, shape2, world_point, normal)
+        shape_shape_contact_tangential_velocities.append(tangential_velocity)
+    for i in np.arange(len(ground_contacts)):
+        shape, contact = ground_contacts[i]
+        world_point, normal = contact
+        tangential_velocity = contact_code.get_shape_ground_tangential_velocity(shape, world_point, normal)
+        ground_contact_tangential_velocities.append(tangential_velocity)
 
     #collision handling
     restitution = 1.
@@ -348,6 +437,7 @@ while(time < total_time):
         so far this is kinetic friction. I will need another one for static friction.
         assume mu = 0.5 everywhere
     '''
+    mu = 0.5
     for i in np.arange(len(shape_shape_contacts)):
         normal_impulse_magn = np.linalg.norm(shape_shape_contact_impulses[i])
         if normal_impulse_magn <= 0.000001:     #threshold
@@ -357,7 +447,7 @@ while(time < total_time):
         shape1, shape2 = shape_pair
         world_point, normal = contact
 
-        tangential_velocity = contact_code.get_shape_shape_tangential_velocity(shape1, shape2, world_point, normal)
+        tangential_velocity = shape_shape_contact_tangential_velocities[i]
         print("tangential_velocity",tangential_velocity)
         tangential_velocity_magn = np.linalg.norm(tangential_velocity)
         if tangential_velocity_magn <= 0.000001:     #threshold
@@ -366,7 +456,7 @@ while(time < total_time):
         friction_direction = tangential_velocity / tangential_velocity_magn
         relative_motion_friction, r_1, r_2, I_inv_1, I_inv_2 = contact_code.shape_shape_collision_impulse(shape1, shape2, (world_point, friction_direction), tangential_velocity_magn, 0.)
         relative_motion_friction_magn = np.linalg.norm(relative_motion_friction)
-        mu_normal_friction_magn = 0.5*normal_impulse_magn
+        mu_normal_friction_magn = mu*normal_impulse_magn
 
         friction = friction_direction*min(relative_motion_friction_magn, mu_normal_friction_magn)
         print("friction",friction)
@@ -379,7 +469,7 @@ while(time < total_time):
         shape, contact = ground_contacts[i]
         world_point, normal = contact
 
-        tangential_velocity = contact_code.get_shape_ground_tangential_velocity(shape, world_point, normal)
+        tangential_velocity = ground_contact_tangential_velocities[i]
         print("tangential_velocity",tangential_velocity)
         tangential_velocity_magn = np.linalg.norm(tangential_velocity)
         if tangential_velocity_magn <= 0.000001:     #threshold
@@ -388,11 +478,15 @@ while(time < total_time):
         friction_direction = tangential_velocity / tangential_velocity_magn
         relative_motion_friction, r, I_inv = contact_code.shape_ground_collision_impulse(shape, (world_point, friction_direction), tangential_velocity_magn, 0.)
         relative_motion_friction_magn = np.linalg.norm(relative_motion_friction)
-        mu_normal_friction_magn = 0.5*normal_impulse_magn
+        mu_normal_friction_magn = mu*normal_impulse_magn
         
         friction = friction_direction*min(relative_motion_friction_magn, mu_normal_friction_magn)
         print("friction",friction)
         contact_code.shape_ground_apply_impulse(shape, friction, r, I_inv)
+
+    #set velocities and angular velocities
+    combined_1.set_component_velocities_and_angular_velocities()
+    combined_2.set_component_velocities_and_angular_velocities()
         
     #run joints scripts
     '''if step < int(2.5/dt):
