@@ -101,3 +101,15 @@ def write_simulation_files(shapes, file, dir_name, dt, fps):
         out_file.close()
         frame_count += 1
         line_count += 1
+
+def read_combined_boxes_rigid_body_file(file_loc):
+    file = open(file_loc, "r", encoding="utf-8")
+    stuff = file.readlines()
+    file.close()
+
+    info = []
+    for line in stuff:
+        line_stripped = line.strip()
+        x,y,z = line_stripped.split(",")
+        info.append((float(x), float(y), float(z)))
+    return info

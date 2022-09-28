@@ -184,12 +184,12 @@ def get_box_box_contact_point_and_normal(shape1, shape2):
     vertex_sdf = find_vertex_sdf(shape1, shape2)
     vertex_contact_points = []
     for vertex1, signed_dist, normal, vertex_w, vertex2 in vertex_sdf.values():
-        if signed_dist <= 0:
+        if signed_dist <= 0.0000001: #threshold
             vertex_contact_points.append((vertex_w, geometry_utils.rotate_only_to_world_coords(shape2, normal)))
     #get vertex contact points from the other shape
     vertex_sdf_1 = find_vertex_sdf(shape2, shape1)
     for vertex1, signed_dist, normal, vertex_w, vertex2 in vertex_sdf_1.values():
-        if signed_dist <= 0:
+        if signed_dist <= 0.0000001: #threshold
             vertex_contact_points.append((vertex_w, geometry_utils.rotate_only_to_world_coords(shape1, normal)))
     #get edge contact points
     edge_contact_points = find_edges_contact_points_box_box(shape1, shape2, vertex_sdf)
@@ -528,9 +528,6 @@ def shape_ground_collision_detection(ground_collisions):
             exit()
         contacts.append((shape, (contact_location, np.array([0., 1., 0.]))))
 
-        print("shape.location",shape.location)
-        print("contact_location",contact_location)
-
         #check for too much penetration
         if contact_location[1] < -0.01:
             print("penetration too deep")
@@ -554,7 +551,7 @@ def shape_ground_contact_dv_check(contacts):
         count += 1
     return contacts_with_negative_dv
 
-def shape_ground_collision_impulse(shape, contact, dv, restitution):
+def shape_ground_collision_impulse(shape, contact, dv, restitution, find_derivatives, dv_mass_derivatives=None):
     world_vertex, normal = contact
     
     #p = geometry_utils.to_local_coords(shape, world_vertex)
@@ -564,24 +561,83 @@ def shape_ground_collision_impulse(shape, contact, dv, restitution):
     I_inv = np.matmul(R,np.matmul(shape.I_inv,R.T))
     
     rotational_part = np.dot(normal, np.cross(np.matmul(I_inv, np.cross(r,normal)), r))
+
+    #derivatives
+    if find_derivatives:
+        I_inv_mass_derivatives = []
+        rotational_part_mass_derivatives = []
+        r_cross_normal = np.cross(r,normal)
+        for I_inv_mass_derivative in shape.I_inv_mass_derivatives:
+            rotated_I_inv_mass_derivative = np.matmul(R,np.matmul(I_inv_mass_derivative,R.T))
+            I_inv_mass_derivatives.append(rotated_I_inv_mass_derivative)
+            
+            rotational_part_mass_derivatives.append(np.dot(normal, np.cross(np.matmul(rotated_I_inv_mass_derivative, r_cross_normal), r)))
+            
+        r_mass_derivatives = []
+        for i in np.arange(len(rotational_part_mass_derivatives)):
+            r_mass_derivatives.append(np.array([0.,0.,0.]))#(-1*shape.location_mass_derivatives[i])
+            
+        for i in np.arange(len(rotational_part_mass_derivatives)):
+            rotational_part_mass_derivatives[i] += np.dot(normal, np.cross(np.matmul(I_inv, np.cross(r_mass_derivatives[i],normal)), r))
+            rotational_part_mass_derivatives[i] += np.dot(normal, np.cross(np.matmul(I_inv, r_cross_normal), r_mass_derivatives[i]))
     
-    impulse_magn = (1. + restitution)*dv
+    impulse_num = (1. + restitution)*dv
     impulse_denom = 1./shape.mass + rotational_part
-    impulse_magn = impulse_magn / impulse_denom
+    impulse_magn = impulse_num / impulse_denom
+
+    #derivatives
+    if find_derivatives:
+        mass_inv_sq = -1./(shape.mass*shape.mass)
+        impulse_denom_mass_derivatives = []
+        for rotational_part_mass_derivative in rotational_part_mass_derivatives:
+            impulse_denom_mass_derivatives.append(mass_inv_sq + rotational_part_mass_derivative)
 
     impulse = impulse_magn*normal
 
+    #derivatives
+    if find_derivatives:
+        impulse_magn_mass_derivatives = []
+        impulse_magn_const_part = -1*impulse_num / (impulse_denom * impulse_denom)
+        for impulse_denom_mass_derivative in impulse_denom_mass_derivatives:
+            impulse_magn_mass_derivatives.append(impulse_magn_const_part * impulse_denom_mass_derivative)
+        #for i in np.arange(len(dv_mass_derivatives)):
+        #    impulse_magn_mass_derivatives[i] += dv_mass_derivatives[i] / impulse_denom
+        #print("impulse_denom and mass derivative\t\t", impulse_denom, impulse_denom_mass_derivatives[0])
+            
+        impulse_mass_derivatives = []
+        for impulse_magn_mass_derivative in impulse_magn_mass_derivatives:
+            impulse_mass_derivatives.append(impulse_magn_mass_derivative*normal)
+            
+        return impulse, r, I_inv, impulse_mass_derivatives, r_mass_derivatives, I_inv_mass_derivatives
+
     return impulse, r, I_inv
 
-def shape_ground_apply_impulse(shape, impulse, r, I_inv):
+def shape_ground_apply_impulse(shape, impulse, r, I_inv, shape_index=None, r_mass_derivatives=None, impulse_mass_derivatives=None, I_inv_mass_derivatives=None, impulse_mu_derivative=None):
+    #since we are dealing with friction on the ground here, only y-axis changes can be made to angular velocity
     shape.velocity -= impulse / shape.mass
-    shape.angular_velocity -= np.matmul(I_inv,np.cross(r,impulse))
+    shape.angular_velocity -= np.matmul(I_inv,np.cross(r,impulse))*np.array([0.,1.,0.])
 
     print("shape.velocity -= ",impulse / shape.mass)
-    print("shape.angular_velocity -= ",np.matmul(I_inv,np.cross(r,impulse)))
+    print("shape.angular_velocity -= ",np.matmul(I_inv,np.cross(r,impulse))*np.array([0.,1.,0.]))
 
-    return
-
+    #derivatives
+    if impulse_mass_derivatives is not None:
+        mass_inv = 1/shape.mass
+        velocity_mass_derivatives = []
+        angular_velocity_mass_derivatives = []
+        for i in np.arange(len(impulse_mass_derivatives)):
+            impulse_mass_derivative = impulse_mass_derivatives[i]
+            I_inv_mass_derivative = I_inv_mass_derivatives[i]
+            r_mass_derivative = r_mass_derivatives[i]
+            velocity_mass_derivatives.append(-1*mass_inv * impulse_mass_derivative + impulse * mass_inv*mass_inv*(1 if shape_index==i else 0))
+            angular_velocity_mass_derivatives.append(np.array([0.,1.,0.])*(-1*np.matmul(I_inv,np.cross(r,impulse_mass_derivative)) - np.matmul(I_inv,np.cross(r_mass_derivative,impulse)) - np.matmul(I_inv_mass_derivative,np.cross(r,impulse))))
+        #d_velocity_over_d_mu += -1*mass_inv * d_impulse_over_d_mu + impulse * mass_inv*mass_inv
+        #d_angular_velocity_over_d_mu += -1*np.matmul(I_inv,np.cross(r,(impulse))
+        
+        velocity_mu_derivatives = -1*impulse_mu_derivative / shape.mass
+        angular_velocity_mu_derivatives = -1*np.matmul(I_inv,np.cross(r,impulse_mu_derivative))*np.array([0.,1.,0.])
+        return velocity_mass_derivatives, angular_velocity_mass_derivatives, velocity_mu_derivatives, angular_velocity_mu_derivatives
+    
 
 
 def get_shape_shape_tangential_velocity(shape1, shape2, contact_location, normal):
@@ -611,3 +667,4 @@ def get_shape_ground_tangential_velocity(shape, contact_location, normal):
     shape_velocity_perpendicular = shape_velocity - shape_velocity_normal
 
     return shape_velocity_perpendicular
+
