@@ -12,7 +12,7 @@ class collision_shape:
     def __init__(self, shape_type, dimensions, location, orientation, velocity, angular_velocity, mass):
         self.shape_type = shape_type
         self.parent = None
-        
+
         #add mesh-related data
         if self.shape_type == "box":
             self.x_len, self.y_len, self.z_len = dimensions
@@ -50,11 +50,11 @@ class collision_shape:
             self.vertices = vertices
             self.face_normals = face_normals
             self.faces = faces
-            
+
         else:
             print("error - unsupported shape type")
             exit()
-        
+
         #add location-related data
         self.location = location
         self.orientation = orientation
@@ -126,13 +126,13 @@ class combined_body:
         self.components = components
         for shape in components:
             shape.parent = self
-        
+
         ##add location-related data
         self.orientation = np.array([0.0, 0.0, 0.0, 1.0])
         self.velocity = velocity
         self.angular_velocity = angular_velocity
         self.orientation_derivative = geometry_utils.orientation_derivative(self.orientation, self.angular_velocity)
-            
+
         #add mass and center of mass information
         self.mass= 0.
         world_COM = np.array([0., 0., 0.])
@@ -207,7 +207,7 @@ class combined_body:
             self.angular_velocity_mass_derivatives.append(np.array([0., 0., 0.]))
             self.velocity_mu_derivatives.append(np.array([0., 0., 0.]))
             self.angular_velocity_mu_derivatives.append(np.array([0., 0., 0.]))
-        
+
     def set_component_velocities_and_angular_velocities(self):
         for i in np.arange(len(self.components)):
             shape = self.components[i]
@@ -438,6 +438,64 @@ combined_info = file_handling.read_combined_boxes_rigid_body_file("try1.txt")
 rotation = geometry_utils.normalize(np.array([0., 0.3, 0., 0.95]))
 
 
+def run_time_step_to_take_deviations_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, motion_script, time_step):
+    script_at_current_step = motion_script[time_step]
+    next_time_step = time_step + 1
+    run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, True, script_at_current_step=script_at_current_step)
+
+    deviations_from_script = []
+
+    '''deviations_from_script.append(combined.location[0] - motion_script[next_time_step][1])
+    deviations_from_script.append(combined.location[1] - motion_script[next_time_step][2])
+    deviations_from_script.append(combined.location[2] - motion_script[next_time_step][3])
+    deviations_from_script.append(combined.orientation[0] - motion_script[next_time_step][4])
+    deviations_from_script.append(combined.orientation[1] - motion_script[next_time_step][5])
+    deviations_from_script.append(combined.orientation[2] - motion_script[next_time_step][6])
+    deviations_from_script.append(combined.orientation[3] - motion_script[next_time_step][7])'''
+    deviations_from_script.append(combined.velocity[0] - motion_script[next_time_step][8])
+    deviations_from_script.append(combined.velocity[1] - motion_script[next_time_step][9])
+    deviations_from_script.append(combined.velocity[2] - motion_script[next_time_step][10])
+    deviations_from_script.append(combined.angular_velocity[0] - motion_script[next_time_step][11])
+    deviations_from_script.append(combined.angular_velocity[1] - motion_script[next_time_step][12])
+    deviations_from_script.append(combined.angular_velocity[2] - motion_script[next_time_step][13])
+
+    deviations_from_script_squared = []
+    for deviation_from_script in deviations_from_script:
+        deviations_from_script_squared.append(deviation_from_script*deviation_from_script)
+
+    deviations_from_script_squared_velocity_mass_derivatives = []
+    deviations_from_script_squared_angular_velocity_mass_derivatives = []
+    deviations_from_script_squared_velocity_mu_derivatives = []
+    deviations_from_script_squared_angular_velocity_mu_derivatives = []
+    for shape_count,component in enumerate(combined.components):
+        this_shape_velocity_mass_derivative = np.array([0., 0., 0.])
+        this_shape_velocity_mass_derivative[0] = 2 * deviations_from_script[0] * combined.velocity_mass_derivatives[shape_count][0]
+        this_shape_velocity_mass_derivative[1] = 2 * deviations_from_script[1] * combined.velocity_mass_derivatives[shape_count][1]
+        this_shape_velocity_mass_derivative[2] = 2 * deviations_from_script[2] * combined.velocity_mass_derivatives[shape_count][2]
+        deviations_from_script_squared_velocity_mass_derivatives.append(this_shape_velocity_mass_derivative)
+
+        this_shape_angular_velocity_mass_derivative = np.array([0., 0., 0.])
+        this_shape_angular_velocity_mass_derivative[0] = 2 * deviations_from_script[3] * combined.angular_velocity_mass_derivatives[shape_count][0]
+        this_shape_angular_velocity_mass_derivative[1] = 2 * deviations_from_script[4] * combined.angular_velocity_mass_derivatives[shape_count][1]
+        this_shape_angular_velocity_mass_derivative[2] = 2 * deviations_from_script[5] * combined.angular_velocity_mass_derivatives[shape_count][2]
+        deviations_from_script_squared_angular_velocity_mass_derivatives.append(this_shape_angular_velocity_mass_derivative)
+
+        this_shape_velocity_mu_derivative = np.array([0., 0., 0.])
+        this_shape_velocity_mu_derivative[0] = 2 * deviations_from_script[0] * combined.velocity_mu_derivatives[shape_count][0]
+        this_shape_velocity_mu_derivative[1] = 2 * deviations_from_script[1] * combined.velocity_mu_derivatives[shape_count][1]
+        this_shape_velocity_mu_derivative[2] = 2 * deviations_from_script[2] * combined.velocity_mu_derivatives[shape_count][2]
+        deviations_from_script_squared_velocity_mu_derivatives.append(this_shape_velocity_mu_derivative)
+
+        this_shape_angular_velocity_mu_derivative = np.array([0., 0., 0.])
+        this_shape_angular_velocity_mu_derivative[0] = 2 * deviations_from_script[3] * combined.angular_velocity_mu_derivatives[shape_count][0]
+        this_shape_angular_velocity_mu_derivative[1] = 2 * deviations_from_script[4] * combined.angular_velocity_mu_derivatives[shape_count][1]
+        this_shape_angular_velocity_mu_derivative[2] = 2 * deviations_from_script[5] * combined.angular_velocity_mu_derivatives[shape_count][2]
+        deviations_from_script_squared_angular_velocity_mu_derivatives.append(this_shape_angular_velocity_mu_derivative)
+
+    #reset the shape's derivatives
+    combined.reset_velocity_and_angular_velocity_derivatives()
+
+    return deviations_from_script_squared, deviations_from_script_squared_velocity_mass_derivatives, deviations_from_script_squared_angular_velocity_mass_derivatives, deviations_from_script_squared_velocity_mu_derivatives, deviations_from_script_squared_angular_velocity_mu_derivatives
 
 def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count, motion_script, time_step):
     result = []
@@ -451,19 +509,6 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
         if not doing_friction:
             component_masses[shape_to_alter_index] = value
         combined = make_combined_boxes_rigid_body(combined_info, np.array([0., 0.4999804, 5.]), np.array([0., 0., -1.]), rotation, np.array([0., 0., 0.]), component_masses)
-        #print(combined.components[0].location)
-
-        #code to print out the initial starting location
-        '''indices = (1,1)
-        result.append(combined.location[2])#(combined.I_inv[indices[0]][indices[1]])
-        result_deriv.append(combined.location_mass_derivatives[0][2])#(combined.I_inv_mass_derivatives[0][indices[0]][indices[1]])
-    
-        if outermost_count != 0:
-            result_deriv_estimate.append((result[outermost_count]-result[outermost_count - 1]) / (value - values_to_count[outermost_count - 1]))
-        else:
-            result_deriv_estimate.append(0)
-        outermost_count += 1
-        continue'''
 
         shapes = []
         shapes += combined.components
@@ -485,26 +530,22 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
         if doing_friction:
             shape_ground_frictions[shapes[shape_to_alter_index]] = value
 
-        # set time
+        # set dt
         dt = 0.001
 
-        #run the simulation
-        script_at_current_step = motion_script[time_step]
-        run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, True, script_at_current_step=script_at_current_step)
+        #run the simulation and get the deviations from the script, as well as derivatives
+        deviations_from_script_squared, deviations_from_script_squared_velocity_mass_derivatives, \
+        deviations_from_script_squared_angular_velocity_mass_derivatives, \
+        deviations_from_script_squared_velocity_mu_derivatives, \
+        deviations_from_script_squared_angular_velocity_mu_derivatives = \
+            run_time_step_to_take_deviations_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, motion_script, time_step)
 
-        deviation_from_script = combined.velocity[2] - motion_script[time_step+1][10]
-        result.append(deviation_from_script*deviation_from_script)
-
-
-        #result.append(combined.velocity_change_this_time_step[2])
+        #append the results to the list
+        result.append(deviations_from_script_squared[2])
         if doing_friction:
-            result_deriv.append(2*deviation_from_script*combined.velocity_mu_derivatives[shape_to_alter_index][2])
+            result_deriv.append(deviations_from_script_squared_velocity_mu_derivatives[shape_to_alter_index][2])
         else:
-            result_deriv.append(2*deviation_from_script*combined.velocity_mass_derivatives[shape_to_alter_index][2])
-        #result.append(res1)
-        #result_deriv.append(res1_mu_deriv)
-
-        combined.reset_velocity_and_angular_velocity_derivatives()
+            result_deriv.append(deviations_from_script_squared_velocity_mass_derivatives[shape_to_alter_index][2])
 
         if outermost_count != 0:
             result_deriv_estimate.append((result[outermost_count]-result[outermost_count - 1]) / (value - values_to_count[outermost_count - 1]))
