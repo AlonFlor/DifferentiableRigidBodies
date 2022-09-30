@@ -186,10 +186,18 @@ class combined_body:
             for j in np.arange(i + 1, len(self.components)):
                 self.fixed_contacts.append((self.components[i], self.components[j]))
 
-        #set empty velocity changes accumulator and angular velocity changes accumulator.
-        self.accumulated_velocity_changes = np.array([0., 0., 0.])
-        self.accumulated_angular_velocity_changes = np.array([0., 0., 0.])
         #set empty velocity derivatives and angular velocity derivatives with respect to mass and mu.
+        self.velocity_mass_derivatives = []
+        self.angular_velocity_mass_derivatives = []
+        self.velocity_mu_derivatives = []
+        self.angular_velocity_mu_derivatives = []
+        for component in self.components:
+            self.velocity_mass_derivatives.append(np.array([0., 0., 0.]))
+            self.angular_velocity_mass_derivatives.append(np.array([0., 0., 0.]))
+            self.velocity_mu_derivatives.append(np.array([0., 0., 0.]))
+            self.angular_velocity_mu_derivatives.append(np.array([0., 0., 0.]))
+
+    def reset_velocity_and_angular_velocity_derivatives(self):
         self.velocity_mass_derivatives = []
         self.angular_velocity_mass_derivatives = []
         self.velocity_mu_derivatives = []
@@ -379,9 +387,10 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
 
     collision_handling_basic_impulse.handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients)
 
-    # update accumulated angular velocities
-    combined.accumulated_velocity_changes += combined.velocity - starting_velocity_this_time_step
-    combined.accumulated_angular_velocity_changes += combined.angular_velocity - starting_angular_velocity_this_time_step
+    # set velocity changes to use for checking derivatives
+    if find_derivatives:
+        combined.velocity_change_this_time_step = combined.velocity - starting_velocity_this_time_step
+        combined.angular_velocity_change_this_time_step = combined.angular_velocity - starting_angular_velocity_this_time_step
 
 
 def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, writing_to_files, find_derivatives, existing_motion_script=None):
@@ -430,7 +439,7 @@ rotation = geometry_utils.normalize(np.array([0., 0.3, 0., 0.95]))
 
 
 
-def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count, motion_script, time_steps_to_sample):
+def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count, motion_script, time_step):
     result = []
     result_deriv = []
     result_deriv_estimate = []
@@ -477,23 +486,25 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
             shape_ground_frictions[shapes[shape_to_alter_index]] = value
 
         # set time
-        time = 0
         dt = 0.001
-        total_time = 0.01#0.002#10
 
         #run the simulation
-        for step in time_steps_to_sample:
-            script_at_current_step = motion_script[step]
-            run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, True, script_at_current_step=script_at_current_step)
+        script_at_current_step = motion_script[time_step]
+        run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, True, script_at_current_step=script_at_current_step)
+
+        deviation_from_script = combined.velocity[2] - motion_script[time_step+1][10]
+        result.append(deviation_from_script*deviation_from_script)
 
 
-        result.append(combined.accumulated_velocity_changes[2])
+        #result.append(combined.velocity_change_this_time_step[2])
         if doing_friction:
-            result_deriv.append(combined.velocity_mu_derivatives[shape_to_alter_index][2])
+            result_deriv.append(2*deviation_from_script*combined.velocity_mu_derivatives[shape_to_alter_index][2])
         else:
-            result_deriv.append(combined.velocity_mass_derivatives[shape_to_alter_index][2])
+            result_deriv.append(2*deviation_from_script*combined.velocity_mass_derivatives[shape_to_alter_index][2])
         #result.append(res1)
         #result_deriv.append(res1_mu_deriv)
+
+        combined.reset_velocity_and_angular_velocity_derivatives()
 
         if outermost_count != 0:
             result_deriv_estimate.append((result[outermost_count]-result[outermost_count - 1]) / (value - values_to_count[outermost_count - 1]))
@@ -506,24 +517,24 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
 
     #print out errors
     avg_abs_error = 0.
-    avg_rel_error = 0.
-    rel_error_available_count = 0
+    '''avg_rel_error = 0.
+    rel_error_available_count = 0'''
     for i in range(1, len(values_to_count)):
         abs_error = np.abs(result_deriv_estimate[i] - result_deriv[i])
         avg_abs_error += abs_error
-        rel_error = 0.
+        '''rel_error = 0.
         if abs(result_deriv_estimate[i]) > 0.00001: #threshold
             rel_error = abs_error / result_deriv_estimate[i]
             avg_rel_error += rel_error
-            rel_error_available_count += 1
+            rel_error_available_count += 1'''
     avg_abs_error /= len(values_to_count) - 1
     print()
     print("derivatives avg error =",avg_abs_error)
-    if rel_error_available_count > 0:
+    '''if rel_error_available_count > 0:
         avg_rel_error /= rel_error_available_count
         print("derivatives avg relative error =", avg_rel_error)
     else:
-        print("derivatives avg relative error is not available, since estimated derivatives are zero or close to zero")
+        print("derivatives avg relative error is not available, since estimated derivatives are zero or close to zero")'''
 
 
 
@@ -562,10 +573,10 @@ def ordinary_run(motion_script = None):
 masses = np.linspace(0.5, 5., 1000)
 mu_values = np.linspace(0, 0.5, 1000)
 
-time_steps_to_sample = list(range(10)) #[0]
+time_step = 10
 motion_script = file_handling.read_motion_script_file(os.path.join("test1","motion_script.csv"))
 
 #ordinary_run()
 #ordinary_run(motion_script)
-#run_derivatives_sweep(0, False, masses, motion_script, time_steps_to_sample)
-run_derivatives_sweep(0, True, mu_values, motion_script, time_steps_to_sample)
+#run_derivatives_sweep(0, False, masses, motion_script, time_step)
+run_derivatives_sweep(0, True, mu_values, motion_script, time_step)
