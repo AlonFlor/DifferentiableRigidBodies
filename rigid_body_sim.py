@@ -121,15 +121,6 @@ class collision_shape:
             self.I_mass_derivative[2][2] = 0.5*self.radius*self.radius
         self.I_inv_mass_derivatives = [-1*self.I_inv*self.I_inv*self.I_mass_derivative] #multiply component by component
 
-        #set empty velocity changes accumulator and angular velocity changes accumulator.
-        self.accumulated_velocity_changes = np.array([0., 0., 0.])
-        self.accumulated_angular_velocity_changes = np.array([0., 0., 0.])
-        #set empty velocity derivatives and angular velocity derivatives with respect to mass and mu.
-        self.velocity_mass_derivative = np.array([0., 0., 0.])
-        self.angular_velocity_mass_derivative = np.array([0., 0., 0.])
-        self.velocity_mu_derivative = np.array([0., 0., 0.])
-        self.angular_velocity_mu_derivative = np.array([0., 0., 0.])
-
 class combined_body:
     def __init__(self, components, velocity, angular_velocity):
         self.components = components
@@ -194,6 +185,20 @@ class combined_body:
         for i in np.arange(len(self.components)):
             for j in np.arange(i + 1, len(self.components)):
                 self.fixed_contacts.append((self.components[i], self.components[j]))
+
+        #set empty velocity changes accumulator and angular velocity changes accumulator.
+        self.accumulated_velocity_changes = np.array([0., 0., 0.])
+        self.accumulated_angular_velocity_changes = np.array([0., 0., 0.])
+        #set empty velocity derivatives and angular velocity derivatives with respect to mass and mu.
+        self.velocity_mass_derivatives = []
+        self.angular_velocity_mass_derivatives = []
+        self.velocity_mu_derivatives = []
+        self.angular_velocity_mu_derivatives = []
+        for component in self.components:
+            self.velocity_mass_derivatives.append(np.array([0., 0., 0.]))
+            self.angular_velocity_mass_derivatives.append(np.array([0., 0., 0.]))
+            self.velocity_mu_derivatives.append(np.array([0., 0., 0.]))
+            self.angular_velocity_mu_derivatives.append(np.array([0., 0., 0.]))
         
     def set_component_velocities_and_angular_velocities(self):
         for i in np.arange(len(self.components)):
@@ -294,8 +299,6 @@ def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions,
         #momenta_file = os.path.join(dir_name, "data_momenta.csv")
         #angular momentum file
 
-    combined_script = []
-
     step=0
     while(time < total_time):
         if True:#(step % 40 == 0):#
@@ -320,11 +323,8 @@ def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions,
         combined.set_component_velocities_and_angular_velocities()
 
         #record starting velocities and angular velocities for the shapes for this time step
-        starting_velocities_this_time_step = []
-        starting_angular_velocities_this_time_step = []
-        for shape in shapes:
-            starting_velocities_this_time_step.append(shape.velocity+np.array([0.,0.,0.]))
-            starting_angular_velocities_this_time_step.append(shape.angular_velocity+np.array([0.,0.,0.]))
+        starting_velocity_this_time_step = combined.velocity+np.array([0.,0.,0.])
+        starting_angular_velocity_this_time_step = combined.angular_velocity+np.array([0.,0.,0.])
 
         #update energies
         total_KE = 0
@@ -482,12 +482,9 @@ def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions,
 
         collision_handling_basic_impulse.handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients)
 
-        combined.set_component_velocities_and_angular_velocities()
-
         #update accumulated angular velocities
-        for count, shape in enumerate(shapes):
-            shape.accumulated_velocity_changes += shape.velocity - starting_velocities_this_time_step[count]
-            shape.accumulated_angular_velocity_changes += shape.angular_velocity - starting_angular_velocities_this_time_step[count]
+        combined.accumulated_velocity_changes += combined.velocity - starting_velocity_this_time_step
+        combined.accumulated_angular_velocity_changes += combined.angular_velocity - starting_angular_velocity_this_time_step
 
         #update time
         #to do: make this symplectic (velocity verlet)
@@ -500,9 +497,6 @@ def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions,
 
         print("writing simulation files")
         file_handling.write_simulation_files(shapes, loc_file, dir_name, dt, 24)
-
-    #if find_derivatives:
-    #    return shapes[0].velocity[2], shapes[0].velocity_mu_derivative[2]#friction0[2], friction_mu_derivatives0[2]#
 
 
 #load shape info
@@ -561,18 +555,18 @@ def run_search_loop(shape_to_alter_index, doing_friction, values_to_count):
         # set time
         time = 0
         dt = 0.001
-        total_time = 0.002#10
+        total_time = 0.01#0.002#10
 
         #run the simulation
         #res1, res1_mu_deriv =
         run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, False, True)
 
 
-        result.append(shapes[shape_to_alter_index].velocity[2])#accumulated_velocity_changes[2])
+        result.append(combined.accumulated_velocity_changes[2])
         if doing_friction:
-            result_deriv.append(shapes[shape_to_alter_index].velocity_mu_derivative[2])
+            result_deriv.append(combined.velocity_mu_derivatives[shape_to_alter_index][2])
         else:
-            result_deriv.append(shapes[shape_to_alter_index].velocity_mass_derivative[2])
+            result_deriv.append(combined.velocity_mass_derivatives[shape_to_alter_index][2])
         #result.append(res1)
         #result_deriv.append(res1_mu_deriv)
 
@@ -623,5 +617,5 @@ masses = np.linspace(0.5, 5., 1000)
 mu_values = np.linspace(0, 0.5, 1000)
 
 #ordinary_run()
-run_search_loop(0, False, masses)
-#run_search_loop(0, True, mu_values)
+#run_search_loop(0, False, masses)
+run_search_loop(0, True, mu_values)

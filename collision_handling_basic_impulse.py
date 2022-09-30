@@ -146,7 +146,7 @@ def shape_ground_collision_impulse(shape, contact, dv, restitution, find_derivat
 
     return impulse, r, I_inv
 
-def shape_ground_apply_impulse(shape, impulse, r, I_inv, shape_index=None, r_mass_derivatives=None, impulse_mass_derivatives=None, I_inv_mass_derivatives=None, impulse_mu_derivative=None):
+def shape_ground_apply_impulse(shape, impulse, r, I_inv, component_index=None, r_mass_derivatives=None, impulse_mass_derivatives=None, I_inv_mass_derivatives=None, impulse_mu_derivative=None):
     #since we are dealing with friction on the ground here, only y-axis changes can be made to angular velocity
     shape.velocity -= impulse / shape.mass
     shape.angular_velocity -= np.matmul(I_inv,np.cross(r,impulse))*np.array([0.,1.,0.])
@@ -163,14 +163,18 @@ def shape_ground_apply_impulse(shape, impulse, r, I_inv, shape_index=None, r_mas
             impulse_mass_derivative = impulse_mass_derivatives[i]
             I_inv_mass_derivative = I_inv_mass_derivatives[i]
             r_mass_derivative = r_mass_derivatives[i]
-            velocity_mass_derivatives.append(-1*mass_inv * impulse_mass_derivative + impulse * mass_inv*mass_inv*(1 if shape_index==i else 0))
+            velocity_mass_derivatives.append(-1*mass_inv * impulse_mass_derivative + impulse * mass_inv*mass_inv)
             angular_velocity_mass_derivatives.append(np.array([0.,1.,0.])*(-1*np.matmul(I_inv,np.cross(r,impulse_mass_derivative)) - np.matmul(I_inv,np.cross(r_mass_derivative,impulse)) - np.matmul(I_inv_mass_derivative,np.cross(r,impulse))))
-        #d_velocity_over_d_mu += -1*mass_inv * d_impulse_over_d_mu + impulse * mass_inv*mass_inv
-        #d_angular_velocity_over_d_mu += -1*np.matmul(I_inv,np.cross(r,(impulse))
         
-        velocity_mu_derivatives = -1*impulse_mu_derivative / shape.mass
-        angular_velocity_mu_derivatives = -1*np.matmul(I_inv,np.cross(r,impulse_mu_derivative))*np.array([0.,1.,0.])
-        return velocity_mass_derivatives, angular_velocity_mass_derivatives, velocity_mu_derivatives, angular_velocity_mu_derivatives
+        velocity_mu_derivative = -1*impulse_mu_derivative / shape.mass
+        angular_velocity_mu_derivative = -1*np.matmul(I_inv,np.cross(r,impulse_mu_derivative))*np.array([0.,1.,0.])
+
+        #add the mass and friction derivatives to the shape's records
+        for i in np.arange(len(impulse_mass_derivatives)):
+            shape.velocity_mass_derivatives[i] += velocity_mass_derivatives[i]
+            shape.angular_velocity_mass_derivatives[i] += angular_velocity_mass_derivatives[i]
+        shape.velocity_mu_derivatives[component_index] += velocity_mu_derivative
+        shape.angular_velocity_mu_derivatives[component_index] += angular_velocity_mu_derivative
     
 
 
@@ -298,15 +302,6 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
             ground_contact_impulses_mass_derivatives[i][i] = 9.8 * dt * np.array([0., 1., 0.])
 
     # handle friction
-    '''
-        need pairwise tangential velocity
-        does friction stop pairwise velocity before or after the contact?
-        there should be no difference, since the collision impulse is perpendicular to friction
-        there will most likely be a problem later, when I will have to distribute the impulses to preserve joint constraints,
-        but for now just assume that all I need is the tangential velocity.
-    
-        so far this is kinetic friction??? I will need another one for static friction???
-    '''
     '''for i in np.arange(len(shape_shape_contacts)):
         normal_impulse_magn = np.linalg.norm(shape_shape_contact_impulses[i])
         if normal_impulse_magn <= 0.000001:     #threshold
@@ -393,12 +388,8 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
                 for j in np.arange(len(shapes)):
                     friction_mass_derivatives.append(mu_normal_friction_magn_mass_derivatives[j] * friction_direction)
                 friction_mu_derivative = mu_normal_friction_magn_mu_derivative * friction_direction
-            if i == 0:
-                friction0 = friction
-                friction_mu_derivatives0 = friction_mu_derivative
         else:
-            relative_motion_friction, r, I_inv = shape_ground_collision_impulse(shape, (
-            world_point, friction_direction), tangential_velocity_magn, 0., False)
+            relative_motion_friction, r, I_inv = shape_ground_collision_impulse(shape, (world_point, friction_direction), tangential_velocity_magn, 0., False)
             relative_motion_friction_magn = np.linalg.norm(relative_motion_friction)
             mu_normal_friction_magn = mu * normal_impulse_magn
             friction = friction_direction * min(relative_motion_friction_magn, mu_normal_friction_magn)
@@ -414,15 +405,8 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
                 for j in np.arange(len(shapes)):
                     I_inv_mass_derivatives.append(np.matmul(R, np.matmul(shape.parent.I_inv_mass_derivatives[j], R.T)))
                     r_mass_derivatives.append(-1 * shape.parent.location_mass_derivatives[i])
-                velocity_mass_derivatives, angular_velocity_mass_derivatives, velocity_mu_derivative, angular_velocity_mu_derivative = shape_ground_apply_impulse(
-                    shape.parent, friction, r, I_inv, shapes.index(shape), r_mass_derivatives, friction_mass_derivatives,
+                shape_ground_apply_impulse(shape.parent, friction, r, I_inv, shapes.index(shape), r_mass_derivatives, friction_mass_derivatives,
                     I_inv_mass_derivatives, friction_mu_derivative)
-                for j in np.arange(len(shapes)):
-                    shapes[j].velocity_mass_derivative += velocity_mass_derivatives[j]
-                    shapes[j].angular_velocity_mass_derivative += angular_velocity_mass_derivatives[j]
-
-                shape.velocity_mu_derivative += velocity_mu_derivative
-                shape.angular_velocity_mu_derivative += angular_velocity_mu_derivative
             else:
                 shape_ground_apply_impulse(shape.parent, friction, r, I_inv)
         '''else:
