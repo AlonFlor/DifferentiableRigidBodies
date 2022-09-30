@@ -394,6 +394,6 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
                 for j in np.arange(len(shapes)):
                     r_combined_mass_derivatives.append(-1 * shape.parent.location_mass_derivatives[i])
                     I_inv_combined_mass_derivatives.append(np.matmul(R_combined, np.matmul(shape.parent.I_inv_mass_derivatives[j], R_combined.T)))
-                shape_ground_apply_impulse_derivatives(shape.parent, friction, r, I_inv, shapes.index(shape), r_combined_mass_derivatives, friction_mass_derivatives, I_inv_combined_mass_derivatives, friction_mu_derivative)
+                shape_ground_apply_impulse_derivatives(shape.parent, friction, r_combined, I_inv_combined, shapes.index(shape), r_combined_mass_derivatives, friction_mass_derivatives, I_inv_combined_mass_derivatives, friction_mu_derivative)
             else:
-                shape_ground_apply_impulse_derivatives(shape, friction, r, I_inv, shapes.index(shape), one_shape_friction_r_mass_derivatives,friction_mass_derivatives, one_shape_friction_I_inv_mass_derivatives, friction_mu_derivative)
+                shape_ground_apply_impulse_derivatives(shape, friction, r, I_inv, shapes.index(shape), one_shape_friction_r_mass_derivatives, friction_mass_derivatives, one_shape_friction_I_inv_mass_derivatives, friction_mu_derivative)
