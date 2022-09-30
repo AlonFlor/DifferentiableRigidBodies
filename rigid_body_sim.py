@@ -241,250 +241,171 @@ def make_combined_boxes_rigid_body(info, location, velocity, orientation, angula
 
 
 
+def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, find_derivatives, locations_records=None, motion_script=None, energies_records=None, time=None, script_at_current_step=None):
+    if script_at_current_step is not None:
+        combined.location[0] = script_at_current_step[1]
+        combined.location[1] = script_at_current_step[2]
+        combined.location[2] = script_at_current_step[3]
+        combined.orientation[0] = script_at_current_step[4]
+        combined.orientation[1] = script_at_current_step[5]
+        combined.orientation[2] = script_at_current_step[6]
+        combined.orientation[3] = script_at_current_step[7]
+        combined.velocity[0] = script_at_current_step[8]
+        combined.velocity[1] = script_at_current_step[9]
+        combined.velocity[2] = script_at_current_step[10]
+        combined.angular_velocity[0] = script_at_current_step[11]
+        combined.angular_velocity[1] = script_at_current_step[12]
+        combined.angular_velocity[2] = script_at_current_step[13]
 
-def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, writing_to_files, find_derivatives, existing_motion_script_file_to_use=None):
+    combined.set_component_velocities_and_angular_velocities()
+
+    # record starting velocities and angular velocities for the shapes for this time step
+    starting_velocity_this_time_step = combined.velocity + np.array([0., 0., 0.])
+    starting_angular_velocity_this_time_step = combined.angular_velocity + np.array([0., 0., 0.])
+
+    # update energies
+    total_KE = 0
+    total_PE = 0
+    total_energy = 0
+    for shape in shapes:
+        total_KE += shape.KE
+        total_PE += shape.PE
+        total_energy += shape.KE + shape.PE
+
+    # record
+    if locations_records is not None:
+        file_handling.write_records_and_motion_script(locations_records, motion_script, energies_records, time, total_KE, total_PE, total_energy, combined, shapes)
+
+    # move
+    for shape in shapes:
+        shape.location += dt * shape.velocity
+        shape.orientation += dt * shape.orientation_derivative
+        shape.orientation = geometry_utils.normalize(shape.orientation)
+        shape.orientation_derivative = geometry_utils.orientation_derivative(shape.orientation, shape.angular_velocity)
+        shape.KE = 0.5 * shape.mass * np.square(np.linalg.norm(shape.velocity)) + 0.5 * np.dot(
+            np.matmul(shape.I, shape.angular_velocity), shape.angular_velocity)
+        shape.PE = 0
+    combined.location += dt * combined.velocity
+    combined.orientation += dt * combined.orientation_derivative
+    combined.orientation = geometry_utils.normalize(combined.orientation)
+    combined.orientation_derivative = geometry_utils.orientation_derivative(combined.orientation, combined.angular_velocity)
+
+    '''#apply external forces
+    for shape in shapes:
+        shape.velocity[1] -= 9.8*dt
+    combined.velocity[1] -= 9.8*dt'''
+
+    # read contact info from existing script, if such as script has been provided
+    if script_at_current_step is not None:
+        shape_shape_contacts_low_level = []
+        ground_contacts_low_level = []
+        i = 14
+        while i < len(script_at_current_step):
+            type_of_contact = script_at_current_step[i]
+            if type_of_contact == "shape-shape_contact":
+                shape1_index = script_at_current_step[i + 1]
+                shape2_index = script_at_current_step[i + 2]
+                shape1 = shapes[shape1_index]
+                shape2 = shapes[shape2_index]
+                contact_location = np.array([0., 0., 0.])
+                contact_location[0] = script_at_current_step[i + 3]
+                contact_location[1] = script_at_current_step[i + 4]
+                contact_location[2] = script_at_current_step[i + 5]
+                normal = np.array([0., 0., 0.])
+                normal[0] = script_at_current_step[i + 6]
+                normal[1] = script_at_current_step[i + 7]
+                normal[2] = script_at_current_step[i + 8]
+                shape_shape_contacts_low_level.append(((shape1, shape2), (contact_location, normal)))
+                i = i + 9
+            elif type_of_contact == "ground-shape_contact":
+                shape_index = script_at_current_step[i + 1]
+                shape = shapes[shape_index]
+                contact_location = np.array([0., 0., 0.])
+                contact_location[0] = script_at_current_step[i + 2]
+                contact_location[1] = script_at_current_step[i + 3]
+                contact_location[2] = script_at_current_step[i + 4]
+                normal = np.array([0., 0., 0.])
+                normal[0] = script_at_current_step[i + 5]
+                normal[1] = script_at_current_step[i + 6]
+                normal[2] = script_at_current_step[i + 7]
+                ground_contacts_low_level.append((shape, (contact_location, normal)))
+                i = i + 8
+    else:
+        # update bounding boxes
+        # bounding boxes consist of min_x,max_x,min_y,max_y,min_z,max_z
+        for shape in shapes:
+            if shape.shape_type == "box":
+                world_vertices = []
+                for vertex in shape.vertices:
+                    world_vertices.append(geometry_utils.to_world_coords(shape, vertex))
+                shape.bounding_box = geometry_utils.get_extrema(world_vertices)
+            elif shape.shape_type == "sphere":
+                shape.bounding_box = shape.location[0] - shape.radius, shape.location[0] + shape.radius, shape.location[1] - shape.radius, shape.location[1] + shape.radius, shape.location[2] - shape.radius, shape.location[2] + shape.radius
+            elif shape.shape_type == "uncapped cylinder":
+                shape.bounding_box = geometry_utils.get_cylinder_bounding_box_extrema(shape)
+
+        # preliminary collision detection using bounding boxes
+        collision_check_list = []
+        ground_contacts_check_list = []
+        for i in np.arange(len(shapes)):
+            for j in np.arange(i + 1, len(shapes)):
+                if (shapes[i], shapes[j]) in fixed_contact_shapes:
+                    continue
+                if (collision_detection.AABB_intersect(shapes[i], shapes[j])):
+                    collision_check_list.append((shapes[i], shapes[j]))
+            # check for ground collisions
+            if shapes[i].bounding_box[2] < -0.00001:  # threshold
+                ground_contacts_check_list.append(shapes[i])
+
+        # main collision detection
+        shape_shape_contacts_low_level = []  # no shape-shape collisions   collision_detection.shape_shape_collision_detection(collision_check_list)
+        ground_contacts_low_level = collision_detection.shape_ground_collision_detection(
+            ground_contacts_check_list)  # []#no ground contacts
+
+    # write down the contacts in the motion script
+    if locations_records is not None:
+        file_handling.write_contacts_in_motion_script(shapes, shape_shape_contacts_low_level, ground_contacts_low_level, motion_script)
+
+    # get friction coefficients
+    shape_shape_contact_friction_coefficients = []
+    ground_contact_friction_coefficients = []
+    for i in np.arange(len(shape_shape_contacts_low_level)):
+        shape_pair, contact = shape_shape_contacts_low_level[i]
+        shape1, shape2 = shape_pair
+        shape_shape_contact_friction_coefficients.append(shape_shape_frictions[shape1][shape2])
+    for i in np.arange(len(ground_contacts_low_level)):
+        shape, contact = ground_contacts_low_level[i]
+        ground_contact_friction_coefficients.append(shape_ground_frictions[shape])
+
+    collision_handling_basic_impulse.handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients)
+
+    # update accumulated angular velocities
+    combined.accumulated_velocity_changes += combined.velocity - starting_velocity_this_time_step
+    combined.accumulated_angular_velocity_changes += combined.angular_velocity - starting_angular_velocity_this_time_step
+
+
+def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, writing_to_files, find_derivatives, existing_motion_script=None):
     time = start_time
 
-    reading_from_existing_script = False
-    if existing_motion_script_file_to_use is not None:
-        reading_from_existing_script = True
-        existing_motion_script_data_file = open(existing_motion_script_file_to_use, "r")
-        existing_motion_script_raw = existing_motion_script_data_file.read()
-        existing_motion_script_data_file.close()
-        existing_motion_script = existing_motion_script_raw.split("\n")[1:-1]
-
     if writing_to_files:
-        # make directory for simulation files
-        testNum = 1
-        while os.path.exists("test" + str(testNum)):
-            testNum += 1
-        dir_name = "test" + str(testNum)
-        os.mkdir(dir_name)
-
-        #set up data storage
-        loc_file = os.path.join(dir_name, "data_locations.csv")
-        motion_script_loc = os.path.join(dir_name, "motion_script.csv")
-        locations_records = open(loc_file, "w")
-        motion_script = open(motion_script_loc, "w")
-        locations_records.write("time")
-        motion_script.write("time")
-        motion_script.write(",combined" + "_x")
-        motion_script.write(",combined" + "_y")
-        motion_script.write(",combined" + "_z")
-        motion_script.write(",combined" + "_quaternion_i")
-        motion_script.write(",combined" + "_quaternion_j")
-        motion_script.write(",combined" + "_quaternion_k")
-        motion_script.write(",combined" + "_quaternion_s")
-        motion_script.write(",combined" + "_velocity_x")
-        motion_script.write(",combined" + "_velocity_y")
-        motion_script.write(",combined" + "_velocity_z")
-        motion_script.write(",combined" + "_angular_velocity_x")
-        motion_script.write(",combined" + "_angular_velocity_y")
-        motion_script.write(",combined" + "_angular_velocity_z")
-        for count in np.arange(len(shapes)):
-            locations_records.write(",shape_"+str(count)+"_x")
-            locations_records.write(",shape_"+str(count)+"_y")
-            locations_records.write(",shape_"+str(count)+"_z")
-            locations_records.write(",shape_"+str(count)+"_quaternion_i")
-            locations_records.write(",shape_"+str(count)+"_quaternion_j")
-            locations_records.write(",shape_"+str(count)+"_quaternion_k")
-            locations_records.write(",shape_"+str(count)+"_quaternion_s")
-        locations_records.write("\n")
-        motion_script.write(",contacts if any (8 columns per ground-shape contact and 9 columns per shape-shape contact)\n")
-
-
-        energies_file = os.path.join(dir_name, "data_energy.csv")
-        energies_locations_records= open(energies_file, "w")
-        energies_locations_records.write("time,KE,PE,total energy\n")
-        #momenta_file = os.path.join(dir_name, "data_momenta.csv")
-        #angular momentum file
+        locations_records, energies_records, motion_script, loc_file, dir_name = file_handling.setup_records_and_motion_script(shapes)
 
     step=0
     while(time < total_time):
-        if True:#(step % 40 == 0):#
-            print("simulation\tt =",time)
+        if True:  # (step % 40 == 0):#
+            print("simulation\tt =", time)
 
-        if reading_from_existing_script:
-            script_at_current_step = existing_motion_script[step].split(",")
-            combined.location[0] = float(script_at_current_step[1])
-            combined.location[1] = float(script_at_current_step[2])
-            combined.location[2] = float(script_at_current_step[3])
-            combined.orientation[0] = float(script_at_current_step[4])
-            combined.orientation[1] = float(script_at_current_step[5])
-            combined.orientation[2] = float(script_at_current_step[6])
-            combined.orientation[3] = float(script_at_current_step[7])
-            combined.velocity[0] = float(script_at_current_step[8])
-            combined.velocity[1] = float(script_at_current_step[9])
-            combined.velocity[2] = float(script_at_current_step[10])
-            combined.angular_velocity[0] = float(script_at_current_step[11])
-            combined.angular_velocity[1] = float(script_at_current_step[12])
-            combined.angular_velocity[2] = float(script_at_current_step[13])
+        script_at_current_step = None
+        if existing_motion_script is not None:
+            if step >= len(existing_motion_script):
+                print("Error: Simulation running for longer than the provided motion script")
+                exit()
+            script_at_current_step = existing_motion_script[step]
 
-        combined.set_component_velocities_and_angular_velocities()
-
-        #record starting velocities and angular velocities for the shapes for this time step
-        starting_velocity_this_time_step = combined.velocity+np.array([0.,0.,0.])
-        starting_angular_velocity_this_time_step = combined.angular_velocity+np.array([0.,0.,0.])
-
-        #update energies
-        total_KE = 0
-        total_PE = 0
-        total_energy = 0
-        for shape in shapes:
-            total_KE += shape.KE
-            total_PE += shape.PE
-            total_energy += shape.KE + shape.PE
-
-        #record
         if writing_to_files:
-            locations_records.write(str(time))
-            motion_script.write(str(time))
-            energies_locations_records.write(str(time))
-            energies_locations_records.write(","+str(total_KE)+","+str(total_PE) + "," + str(total_energy) + "\n")
-            for coord in combined.location:
-                motion_script.write(","+str(coord))
-            for coord in combined.orientation:
-                motion_script.write(","+str(coord))
-            for coord in combined.velocity:
-                motion_script.write(","+str(coord))
-            for coord in combined.angular_velocity:
-                motion_script.write(","+str(coord))
-            for shape in shapes:
-                for coord in shape.location:
-                    locations_records.write(","+str(coord))
-                for coord in shape.orientation:
-                    locations_records.write(","+str(coord))
-            locations_records.write("\n")
-        
-        #move
-        for shape in shapes:
-            shape.location += dt*shape.velocity
-            shape.orientation += dt*shape.orientation_derivative
-            shape.orientation = geometry_utils.normalize(shape.orientation)
-            shape.orientation_derivative = geometry_utils.orientation_derivative(shape.orientation, shape.angular_velocity)
-            shape.KE = 0.5*shape.mass*np.square(np.linalg.norm(shape.velocity)) + 0.5*np.dot(np.matmul(shape.I,shape.angular_velocity), shape.angular_velocity)
-            shape.PE = 0
-        combined.location += dt*combined.velocity
-        combined.orientation += dt*combined.orientation_derivative
-        combined.orientation = geometry_utils.normalize(combined.orientation)
-        combined.orientation_derivative = geometry_utils.orientation_derivative(combined.orientation, combined.angular_velocity)
-
-        '''#apply external forces
-        for shape in shapes:
-            shape.velocity[1] -= 9.8*dt
-        combined.velocity[1] -= 9.8*dt'''
-
-        #read contact info from existing script, if such as script has been provided
-        if reading_from_existing_script:
-            shape_shape_contacts_low_level = []
-            ground_contacts_low_level = []
-            i = 14
-            while i < len(script_at_current_step):
-                type_of_contact = script_at_current_step[i]
-                if type_of_contact == "shape-shape_contact":
-                    shape1_index = int(script_at_current_step[i+1])
-                    shape2_index = int(script_at_current_step[i+2])
-                    shape1 = shapes[shape1_index]
-                    shape2 = shapes[shape2_index]
-                    contact_location = np.array([0., 0., 0.])
-                    contact_location[0] = float(script_at_current_step[i+3])
-                    contact_location[1] = float(script_at_current_step[i+4])
-                    contact_location[2] = float(script_at_current_step[i+5])
-                    normal = np.array([0., 0., 0.])
-                    normal[0] = float(script_at_current_step[i+6])
-                    normal[1] = float(script_at_current_step[i+7])
-                    normal[2] = float(script_at_current_step[i+8])
-                    shape_shape_contacts_low_level.append(((shape1, shape2), (contact_location, normal)))
-                    i = i+9
-                elif type_of_contact == "ground-shape_contact":
-                    shape_index = int(script_at_current_step[i+1])
-                    shape = shapes[shape_index]
-                    contact_location = np.array([0., 0., 0.])
-                    contact_location[0] = float(script_at_current_step[i+2])
-                    contact_location[1] = float(script_at_current_step[i+3])
-                    contact_location[2] = float(script_at_current_step[i+4])
-                    normal = np.array([0., 0., 0.])
-                    normal[0] = float(script_at_current_step[i+5])
-                    normal[1] = float(script_at_current_step[i+6])
-                    normal[2] = float(script_at_current_step[i+7])
-                    ground_contacts_low_level.append((shape, (contact_location, normal)))
-                    i = i+8
-                else:
-                    print("error: cannot read contact type in existing motion script: ", type_of_contact)
-                    exit()
+            run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, find_derivatives, locations_records=locations_records, motion_script=motion_script, energies_records=energies_records, time=time,  script_at_current_step=script_at_current_step)
         else:
-            #update bounding boxes
-            #bounding boxes consist of min_x,max_x,min_y,max_y,min_z,max_z
-            for shape in shapes:
-                if shape.shape_type=="box":
-                    world_vertices = []
-                    for vertex in shape.vertices:
-                        world_vertices.append(geometry_utils.to_world_coords(shape, vertex))
-                    shape.bounding_box = geometry_utils.get_extrema(world_vertices)
-                elif shape.shape_type=="sphere":
-                    shape.bounding_box = shape.location[0]-shape.radius,shape.location[0]+shape.radius, shape.location[1]-shape.radius,shape.location[1]+shape.radius, shape.location[2]-shape.radius,shape.location[2]+shape.radius
-                elif shape.shape_type=="uncapped cylinder":
-                    shape.bounding_box = geometry_utils.get_cylinder_bounding_box_extrema(shape)
-
-
-            #preliminary collision detection using bounding boxes
-            collision_check_list = []
-            ground_contacts_check_list = []
-            for i in np.arange(len(shapes)):
-                for j in np.arange(i+1, len(shapes)):
-                    if (shapes[i], shapes[j]) in fixed_contact_shapes:
-                        continue
-                    if(collision_detection.AABB_intersect(shapes[i],shapes[j])):
-                        collision_check_list.append((shapes[i],shapes[j]))
-                #check for ground collisions
-                if shapes[i].bounding_box[2] < -0.00001:   #threshold
-                    ground_contacts_check_list.append(shapes[i])
-
-            #main collision detection
-            shape_shape_contacts_low_level = []#no shape-shape collisions   collision_detection.shape_shape_collision_detection(collision_check_list)
-            ground_contacts_low_level = collision_detection.shape_ground_collision_detection(ground_contacts_check_list)#  []#no ground contacts
-
-        #write down the contacts in the motion script
-        if writing_to_files:
-            for contact in shape_shape_contacts_low_level:
-                shape_pair, contact_info = contact
-                shape1, shape2 = shape_pair
-                contact_location, normal = contact_info
-                motion_script.write(",shape-shape_contact,"+str(shapes.index(shape1))+","+str(shapes.index(shape2)))
-                motion_script.write(","+ str(contact_location[0]))
-                motion_script.write(","+ str(contact_location[1]))
-                motion_script.write(","+ str(contact_location[2]))
-                motion_script.write(","+ str(normal[0]))
-                motion_script.write(","+ str(normal[1]))
-                motion_script.write(","+ str(normal[2]))
-            for contact in ground_contacts_low_level:
-                shape, contact_info = contact
-                contact_location, normal = contact_info
-                motion_script.write(",ground-shape_contact,"+str(shapes.index(shape)))
-                motion_script.write(","+ str(contact_location[0]))
-                motion_script.write(","+ str(contact_location[1]))
-                motion_script.write(","+ str(contact_location[2]))
-                motion_script.write(","+ str(normal[0]))
-                motion_script.write(","+ str(normal[1]))
-                motion_script.write(","+ str(normal[2]))
-            motion_script.write("\n")
-
-        #get friction coefficients
-        shape_shape_contact_friction_coefficients = []
-        ground_contact_friction_coefficients = []
-        for i in np.arange(len(shape_shape_contacts_low_level)):
-            shape_pair, contact = shape_shape_contacts_low_level[i]
-            shape1, shape2 = shape_pair
-            shape_shape_contact_friction_coefficients.append(shape_shape_frictions[shape1][shape2])
-        for i in np.arange(len(ground_contacts_low_level)):
-            shape, contact = ground_contacts_low_level[i]
-            ground_contact_friction_coefficients.append(shape_ground_frictions[shape])
-
-        collision_handling_basic_impulse.handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients)
-
-        #update accumulated angular velocities
-        combined.accumulated_velocity_changes += combined.velocity - starting_velocity_this_time_step
-        combined.accumulated_angular_velocity_changes += combined.angular_velocity - starting_angular_velocity_this_time_step
+            run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, find_derivatives, script_at_current_step=script_at_current_step)
 
         #update time
         #to do: make this symplectic (velocity verlet)
@@ -493,10 +414,13 @@ def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions,
 
     if writing_to_files:
         locations_records.close()
+        energies_records.close()
         motion_script.close()
 
         print("writing simulation files")
         file_handling.write_simulation_files(shapes, loc_file, dir_name, dt, 24)
+
+
 
 
 #load shape info
@@ -506,7 +430,7 @@ rotation = geometry_utils.normalize(np.array([0., 0.3, 0., 0.95]))
 
 
 
-def run_search_loop(shape_to_alter_index, doing_friction, values_to_count):
+def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count, motion_script, time_steps_to_sample):
     result = []
     result_deriv = []
     result_deriv_estimate = []
@@ -558,8 +482,9 @@ def run_search_loop(shape_to_alter_index, doing_friction, values_to_count):
         total_time = 0.01#0.002#10
 
         #run the simulation
-        #res1, res1_mu_deriv =
-        run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, False, True)
+        for step in time_steps_to_sample:
+            script_at_current_step = motion_script[step]
+            run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, True, script_at_current_step=script_at_current_step)
 
 
         result.append(combined.accumulated_velocity_changes[2])
@@ -576,12 +501,33 @@ def run_search_loop(shape_to_alter_index, doing_friction, values_to_count):
             result_deriv_estimate.append(0)
         outermost_count += 1
 
+    #draw plot
     draw_data.plot_data(values_to_count, result, result_deriv, result_deriv_estimate)
-    for i in range(len(values_to_count)):
-        print(result_deriv_estimate[i] - result_deriv[i])
+
+    #print out errors
+    avg_abs_error = 0.
+    avg_rel_error = 0.
+    rel_error_available_count = 0
+    for i in range(1, len(values_to_count)):
+        abs_error = np.abs(result_deriv_estimate[i] - result_deriv[i])
+        avg_abs_error += abs_error
+        rel_error = 0.
+        if abs(result_deriv_estimate[i]) > 0.00001: #threshold
+            rel_error = abs_error / result_deriv_estimate[i]
+            avg_rel_error += rel_error
+            rel_error_available_count += 1
+    avg_abs_error /= len(values_to_count) - 1
+    print()
+    print("derivatives avg error =",avg_abs_error)
+    if rel_error_available_count > 0:
+        avg_rel_error /= rel_error_available_count
+        print("derivatives avg relative error =", avg_rel_error)
+    else:
+        print("derivatives avg relative error is not available, since estimated derivatives are zero or close to zero")
 
 
-def ordinary_run():
+
+def ordinary_run(motion_script = None):
     component_masses = [1., 1.]
     combined = make_combined_boxes_rigid_body(combined_info, np.array([0., 0.4999804, 5.]), np.array([0., 0., -1.]), rotation, np.array([0., 0., 0.]), component_masses)
 
@@ -609,13 +555,17 @@ def ordinary_run():
     total_time = 10
 
     # run the simulation
-    run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions,shape_ground_frictions, fixed_contact_shapes, True, False, os.path.join("test1","motion_script.csv"))
+    run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions,shape_ground_frictions, fixed_contact_shapes, True, False, motion_script)
 
 
 
 masses = np.linspace(0.5, 5., 1000)
 mu_values = np.linspace(0, 0.5, 1000)
 
+time_steps_to_sample = list(range(10)) #[0]
+motion_script = file_handling.read_motion_script_file(os.path.join("test1","motion_script.csv"))
+
 #ordinary_run()
-#run_search_loop(0, False, masses)
-run_search_loop(0, True, mu_values)
+#ordinary_run(motion_script)
+#run_derivatives_sweep(0, False, masses, motion_script, time_steps_to_sample)
+run_derivatives_sweep(0, True, mu_values, motion_script, time_steps_to_sample)

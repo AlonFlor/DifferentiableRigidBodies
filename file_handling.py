@@ -52,6 +52,146 @@ def read_obj_mesh(file_loc):
 
     return vertices, normals, faces
 
+
+def read_motion_script_file(motion_script_file_to_use):
+    motion_script_data_file = open(motion_script_file_to_use, "r")
+    motion_script_raw = motion_script_data_file.read()
+    motion_script_data_file.close()
+    motion_script_raw_lines = motion_script_raw.split("\n")[1:-1]
+    motion_script = []
+
+    for line in motion_script_raw_lines:
+        split_line = line.split(",")
+        motion_script_line = []
+
+        for split_line_part in split_line[:14]:
+            motion_script_line.append(float(split_line_part))
+
+        if len(split_line) > 14:
+            #add contacts for the current time step
+            i = 14
+            while i < len(split_line):
+                type_of_contact = split_line[i]
+                motion_script_line.append(type_of_contact)
+                if type_of_contact == "shape-shape_contact":
+                    motion_script_line.append(int(split_line[i + 1]))
+                    motion_script_line.append(int(split_line[i + 2]))
+                    motion_script_line.append(float(split_line[i + 3]))
+                    motion_script_line.append(float(split_line[i + 4]))
+                    motion_script_line.append(float(split_line[i + 5]))
+                    motion_script_line.append(float(split_line[i + 6]))
+                    motion_script_line.append(float(split_line[i + 7]))
+                    motion_script_line.append(float(split_line[i + 8]))
+                    i = i + 9
+                elif type_of_contact == "ground-shape_contact":
+                    motion_script_line.append(int(split_line[i + 1]))
+                    motion_script_line.append(float(split_line[i + 2]))
+                    motion_script_line.append(float(split_line[i + 3]))
+                    motion_script_line.append(float(split_line[i + 4]))
+                    motion_script_line.append(float(split_line[i + 5]))
+                    motion_script_line.append(float(split_line[i + 6]))
+                    motion_script_line.append(float(split_line[i + 7]))
+                    i = i + 8
+                else:
+                    print("error: cannot read contact type in existing motion script: ", type_of_contact)
+                    exit()
+
+        motion_script.append(motion_script_line)
+    return motion_script
+
+
+def setup_records_and_motion_script(shapes):
+    # make directory for simulation files
+    testNum = 1
+    while os.path.exists("test" + str(testNum)):
+        testNum += 1
+    dir_name = "test" + str(testNum)
+    os.mkdir(dir_name)
+
+    # set up data storage
+    loc_file = os.path.join(dir_name, "data_locations.csv")
+    motion_script_loc = os.path.join(dir_name, "motion_script.csv")
+    locations_records = open(loc_file, "w")
+    motion_script = open(motion_script_loc, "w")
+    locations_records.write("time")
+    motion_script.write("time")
+    motion_script.write(",combined" + "_x")
+    motion_script.write(",combined" + "_y")
+    motion_script.write(",combined" + "_z")
+    motion_script.write(",combined" + "_quaternion_i")
+    motion_script.write(",combined" + "_quaternion_j")
+    motion_script.write(",combined" + "_quaternion_k")
+    motion_script.write(",combined" + "_quaternion_s")
+    motion_script.write(",combined" + "_velocity_x")
+    motion_script.write(",combined" + "_velocity_y")
+    motion_script.write(",combined" + "_velocity_z")
+    motion_script.write(",combined" + "_angular_velocity_x")
+    motion_script.write(",combined" + "_angular_velocity_y")
+    motion_script.write(",combined" + "_angular_velocity_z")
+    for count in np.arange(len(shapes)):
+        locations_records.write(",shape_" + str(count) + "_x")
+        locations_records.write(",shape_" + str(count) + "_y")
+        locations_records.write(",shape_" + str(count) + "_z")
+        locations_records.write(",shape_" + str(count) + "_quaternion_i")
+        locations_records.write(",shape_" + str(count) + "_quaternion_j")
+        locations_records.write(",shape_" + str(count) + "_quaternion_k")
+        locations_records.write(",shape_" + str(count) + "_quaternion_s")
+    locations_records.write("\n")
+    motion_script.write(",contacts if any (8 columns per ground-shape contact and 9 columns per shape-shape contact)\n")
+
+    energies_file = os.path.join(dir_name, "data_energy.csv")
+    energies_records = open(energies_file, "w")
+    energies_records.write("time,KE,PE,total energy\n")
+    # momenta_file = os.path.join(dir_name, "data_momenta.csv")
+    # angular momentum file
+
+    return locations_records, energies_records, motion_script, loc_file, dir_name
+
+def write_records_and_motion_script(locations_records, motion_script, energies_records, time, total_KE, total_PE, total_energy, combined, shapes):
+    locations_records.write(str(time))
+    motion_script.write(str(time))
+    energies_records.write(str(time))
+    energies_records.write("," + str(total_KE) + "," + str(total_PE) + "," + str(total_energy) + "\n")
+    for coord in combined.location:
+        motion_script.write("," + str(coord))
+    for coord in combined.orientation:
+        motion_script.write("," + str(coord))
+    for coord in combined.velocity:
+        motion_script.write("," + str(coord))
+    for coord in combined.angular_velocity:
+        motion_script.write("," + str(coord))
+    for shape in shapes:
+        for coord in shape.location:
+            locations_records.write("," + str(coord))
+        for coord in shape.orientation:
+            locations_records.write("," + str(coord))
+    locations_records.write("\n")
+
+def write_contacts_in_motion_script(shapes, shape_shape_contacts_low_level, ground_contacts_low_level, motion_script):
+    for contact in shape_shape_contacts_low_level:
+        shape_pair, contact_info = contact
+        shape1, shape2 = shape_pair
+        contact_location, normal = contact_info
+        motion_script.write(",shape-shape_contact," + str(shapes.index(shape1)) + "," + str(shapes.index(shape2)))
+        motion_script.write("," + str(contact_location[0]))
+        motion_script.write("," + str(contact_location[1]))
+        motion_script.write("," + str(contact_location[2]))
+        motion_script.write("," + str(normal[0]))
+        motion_script.write("," + str(normal[1]))
+        motion_script.write("," + str(normal[2]))
+    for contact in ground_contacts_low_level:
+        shape, contact_info = contact
+        contact_location, normal = contact_info
+        motion_script.write(",ground-shape_contact," + str(shapes.index(shape)))
+        motion_script.write("," + str(contact_location[0]))
+        motion_script.write("," + str(contact_location[1]))
+        motion_script.write("," + str(contact_location[2]))
+        motion_script.write("," + str(normal[0]))
+        motion_script.write("," + str(normal[1]))
+        motion_script.write("," + str(normal[2]))
+    motion_script.write("\n")
+
+
 def write_simulation_files(shapes, file, dir_name, dt, fps):
     outdata = open(file, "r", encoding="utf-8")
     data = outdata.read()
