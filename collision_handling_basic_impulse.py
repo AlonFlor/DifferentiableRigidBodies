@@ -160,6 +160,7 @@ def shape_ground_apply_impulse_derivatives(shape, impulse, r, I_inv, component_i
     mass_inv = 1/shape.mass
     velocity_mass_derivatives = []
     angular_velocity_mass_derivatives = []
+
     for i in np.arange(len(impulse_mass_derivatives)):
         impulse_mass_derivative = impulse_mass_derivatives[i]
         I_inv_mass_derivative = I_inv_mass_derivatives[i]
