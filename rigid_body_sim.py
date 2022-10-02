@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 import os
 import collision_handling_basic_impulse
 import collision_detection
@@ -620,7 +621,16 @@ def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing
     draw_data.plot_3D_data(X, Y, Z_result, Z_x_derivative, Z_x_derivative_estimate, zero)
     draw_data.plot_3D_data(X, Y, Z_result, Z_y_derivative, Z_y_derivative_estimate, zero)
 
-def ordinary_run(motion_script = None):
+def find_values(motion_script, time_step, doing_friction, initial_guess, bounds):
+    #mu only. Add masses later.
+    def func(x):
+        result, mass_derivatives, mu_derivatives = run_single_time_step_with_derivatives(motion_script, time_step, doing_friction, 0, x[0], 1, x[1])
+        return (10000*result, [10000*mu_derivatives[0], 10000*mu_derivatives[1]])
+    result = scipy.optimize.minimize(func, x0 = initial_guess, method='L-BFGS-B', jac=True, bounds=bounds)
+
+    return result.x
+
+def ordinary_run(new_mu0 = None, new_mu1 = None, motion_script = None):
     component_masses = [1., 1.]
     combined = make_combined_boxes_rigid_body(combined_info, np.array([0., 0.4999804, 5.]), np.array([-1., 0., 0.]), rotation, np.array([0., 0., 0.]), component_masses)
 
@@ -643,6 +653,11 @@ def ordinary_run(motion_script = None):
         shape_ground_frictions[shape] = 0.02  # set friction coefficient to 0.02 for now
     shape_ground_frictions[shapes[0]] = 0.2 #set friction for the first shape to be this
 
+    if new_mu0 is not None:
+        shape_ground_frictions[shapes[0]] = new_mu0
+    if new_mu1 is not None:
+        shape_ground_frictions[shapes[1]] = new_mu1
+
     # set time
     time = 0
     dt = 0.001
@@ -660,7 +675,13 @@ time_step = 100
 motion_script = file_handling.read_motion_script_file(os.path.join("test3","motion_script.csv"))
 
 #ordinary_run()
-#ordinary_run(motion_script)
+#ordinary_run(motion_script=motion_script)
 #run_derivatives_sweep(0, False, masses, motion_script, time_step)
 #run_derivatives_sweep(0, True, mu_values, motion_script, time_step)
-run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step)
+#run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step)
+initial_guess = np.array([0.005, 0.4])
+ordinary_run(new_mu0=initial_guess[0], new_mu1=initial_guess[1])
+bounds = [(0., 0.5), (0., 0.5)]
+vals = find_values(motion_script, time_step, True, initial_guess, bounds)
+ordinary_run(new_mu0=vals[0], new_mu1=vals[1])
+print(vals)

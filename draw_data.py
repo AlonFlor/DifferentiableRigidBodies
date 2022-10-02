@@ -12,13 +12,13 @@ def plot_data(x_axis_data, y_axis_data1, y_axis_data2, y_axis_data3):
     plt.plot(x_axis_data, y_axis_data1, 'b', x_axis_data, y_axis_data2, 'g', x_axis_data, y_axis_data3, 'r')
     plt.show()
 
-def plot_3D_data(X_axis_data, y_axis_data, z_1, z_2, z_3, z_4):
+def plot_3D_data(x_axis_data, y_axis_data, z_1, z_2, z_3, z_4):
     fig = plt.figure()
     ax = plt.axes(projection='3d')
-    ax.plot_wireframe(X_axis_data, y_axis_data, z_1, color='b')
-    ax.plot_wireframe(X_axis_data, y_axis_data, z_2, color='g')
-    ax.plot_wireframe(X_axis_data, y_axis_data, z_3, color='r')
-    ax.plot_wireframe(X_axis_data, y_axis_data, z_4, color='k')
+    ax.plot_wireframe(x_axis_data, y_axis_data, z_1, color='b')
+    ax.plot_wireframe(x_axis_data, y_axis_data, z_2, color='g')
+    ax.plot_wireframe(x_axis_data, y_axis_data, z_3, color='r')
+    ax.plot_wireframe(x_axis_data, y_axis_data, z_4, color='k')
     plt.show()
 
 '''def plot_3D_data(X_axis_data, y_axis_data, z_1):
