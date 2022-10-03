@@ -124,8 +124,7 @@ def shape_ground_collision_impulse_derivatives(shape, contact, r, R, I_inv, impu
         r_mass_derivatives.append(np.array([0., 0., 0.]))  # (-1*shape.location_mass_derivatives[i])
 
     for i in np.arange(len(rotational_part_mass_derivatives)):
-        rotational_part_mass_derivatives[i] += np.dot(normal, np.cross(
-            np.matmul(I_inv, np.cross(r_mass_derivatives[i], normal)), r))
+        rotational_part_mass_derivatives[i] += np.dot(normal, np.cross(np.matmul(I_inv, np.cross(r_mass_derivatives[i], normal)), r))
         rotational_part_mass_derivatives[i] += np.dot(normal, np.cross(np.matmul(I_inv, r_cross_normal), r_mass_derivatives[i]))
 
     mass_inv_sq = -1./(shape.mass*shape.mass)
@@ -167,6 +166,7 @@ def shape_ground_apply_impulse_derivatives(shape, impulse, r, I_inv, component_i
         r_mass_derivative = r_mass_derivatives[i]
         velocity_mass_derivatives.append(-1*mass_inv * impulse_mass_derivative + impulse * mass_inv*mass_inv)
         angular_velocity_mass_derivatives.append(np.array([0.,1.,0.])*(-1*np.matmul(I_inv,np.cross(r,impulse_mass_derivative)) - np.matmul(I_inv,np.cross(r_mass_derivative,impulse)) - np.matmul(I_inv_mass_derivative,np.cross(r,impulse))))
+        print("\t\t\t\t","r",r,"\t\t\t\t","r_mass_derivative",r_mass_derivative)
 
     velocity_mu_derivative = -1*impulse_mu_derivative / shape.mass
     angular_velocity_mu_derivative = -1*np.matmul(I_inv,np.cross(r,impulse_mu_derivative))*np.array([0.,1.,0.])
@@ -393,7 +393,7 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
                 r_combined_mass_derivatives = []
                 I_inv_combined_mass_derivatives = []
                 for j in np.arange(len(shapes)):
-                    r_combined_mass_derivatives.append(-1 * shape.parent.location_mass_derivatives[i])
+                    r_combined_mass_derivatives.append(np.array([0.,0.,0.]))#(-1 * shape.parent.location_mass_derivatives[i])
                     I_inv_combined_mass_derivatives.append(np.matmul(R_combined, np.matmul(shape.parent.I_inv_mass_derivatives[j], R_combined.T)))
                 shape_ground_apply_impulse_derivatives(shape.parent, friction, r_combined, I_inv_combined, shapes.index(shape), r_combined_mass_derivatives, friction_mass_derivatives, I_inv_combined_mass_derivatives, friction_mu_derivative)
             else:

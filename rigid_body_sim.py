@@ -174,7 +174,10 @@ class combined_body:
             self.I_mass_derivatives.append(np.zeros((3,3)))
             shape = self.components[index]
             displacement = self.component_translations[index]
-            translated_shape_I_mass_derivative = shape.I_mass_derivative + (np.dot(displacement, displacement)*np.identity(3) - np.outer(displacement, displacement))
+            displacement_derivative = -1*self.location_mass_derivatives[index]
+            translated_shape_I_mass_derivative = shape.I_mass_derivative + (np.dot(displacement, displacement)*np.identity(3) - np.outer(displacement, displacement)) #+ \
+                                                                # shape.mass*(np.dot(displacement, displacement_derivative) * np.identity(3) - np.outer(displacement, displacement_derivative) +
+                                                                #             np.dot(displacement_derivative, displacement) * np.identity(3) - np.outer(displacement_derivative, displacement))
             R = geometry_utils.quaternion_to_rotation_matrix(self.component_rotations[index])
             self.I_mass_derivatives[index] += np.matmul(R, np.matmul(translated_shape_I_mass_derivative, R.T))
         self.I_inv_mass_derivatives = []
@@ -361,8 +364,7 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
 
         # main collision detection
         shape_shape_contacts_low_level = []  # no shape-shape collisions   collision_detection.shape_shape_collision_detection(collision_check_list)
-        ground_contacts_low_level = collision_detection.shape_ground_collision_detection(
-            ground_contacts_check_list)  # []#no ground contacts
+        ground_contacts_low_level = collision_detection.shape_ground_collision_detection(ground_contacts_check_list)  # []#no ground contacts
 
     # write down the contacts in the motion script
     if locations_records is not None:
@@ -516,10 +518,19 @@ def set_shape_masses_and_frictions(shapes, doing_friction, shape_to_alter_index,
 
     if not doing_friction:
         shapes[shape_to_alter_index].mass = value
+        #print("shapes[shape_to_alter_index].I",shapes[shape_to_alter_index].I)
+        #print("shapes[shape_to_alter_index].I_mass_derivative",shapes[shape_to_alter_index].I_mass_derivative)
         shapes[shape_to_alter_index].I = value*shapes[shape_to_alter_index].I_mass_derivative
+        shapes[shape_to_alter_index].I_inv = np.linalg.inv(shapes[shape_to_alter_index].I)
+        shapes[shape_to_alter_index].I_inv_mass_derivatives = \
+            [-1 * shapes[shape_to_alter_index].I_inv * shapes[shape_to_alter_index].I_inv * shapes[shape_to_alter_index].I_mass_derivative]  # multiply component by component
         if shape_to_alter_index_shape2 is not None:
             shapes[shape_to_alter_index_shape2].mass = value2
             shapes[shape_to_alter_index_shape2].I = value2 * shapes[shape_to_alter_index_shape2].I_mass_derivative
+            shapes[shape_to_alter_index_shape2].I_inv = np.linalg.inv(shapes[shape_to_alter_index_shape2].I)
+            shapes[shape_to_alter_index_shape2].I_inv_mass_derivatives = \
+                [-1 * shapes[shape_to_alter_index_shape2].I_inv * shapes[shape_to_alter_index_shape2].I_inv * shapes[shape_to_alter_index_shape2].I_mass_derivative]
+                # multiply component by component
 
     # set coefficients of friction for all shapes
     shape_shape_frictions = {}
@@ -549,11 +560,12 @@ def run_mass_derivatives_sweep_in_combined_shape(shape_to_alter_index, values_to
 
     outermost_count = 0
 
-    # make shapes
-    shapes = []
-    shapes += set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]))
+
 
     for value in values_to_count:
+        # make shapes
+        shapes = []
+        shapes += set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]))
         shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, False, shape_to_alter_index, value)
         combined = combined_body(shapes, np.array([0., 0., 0.]), np.array([0., 0., 0.]))
 
@@ -587,13 +599,12 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
 
     outermost_count = 0
 
-    # make shapes
-    shapes = []
-    shapes += set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]))
 
     for value in values_to_count:
+        # make shapes
+        shapes = []
+        shapes += set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]))
         shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, doing_friction, shape_to_alter_index, value)
-        shape_ground_frictions[shapes[0]]=0.2              #DELETE THIS WHEN DONE AND JUST PLACE ALL MASS AND FRICTION VALUES OUTRIGHT
         combined = combined_body(shapes, np.array([0., 0., 0.]), np.array([0., 0., 0.]))
 
         deviation_from_script_squared, \
@@ -641,10 +652,6 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
 def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing_friction, values_to_count, motion_script, time_step):
     X, Y = np.meshgrid(values_to_count, values_to_count)
 
-    # make shapes
-    shapes = []
-    shapes += set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]))
-
     zero = X*0
     Z_result = X*0
     Z_x_derivative = X*0
@@ -653,6 +660,9 @@ def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing
     Z_y_derivative_estimate = X*0
     for coord_x, value_x in enumerate(values_to_count):
         for coord_y, value_y in enumerate(values_to_count):
+            # make shapes
+            shapes = []
+            shapes += set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]))
             shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, doing_friction, shape_to_alter_index1, value_x, shape_to_alter_index2, value_y)
             combined = combined_body(shapes, np.array([0., 0., 0.]), np.array([0., 0., 0.]))
 
@@ -690,12 +700,10 @@ def ordinary_run(new_mu0 = None, new_mu1 = None, motion_script = None):
     # make shapes
     shapes = []
     shapes += set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation)
-
     if new_mu0 is not None:
         shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, True, 0, new_mu0, 1, new_mu1)
     else:
         shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, False)
-
     combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
 
     # set time
