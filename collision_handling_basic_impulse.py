@@ -166,7 +166,6 @@ def shape_ground_apply_impulse_derivatives(shape, impulse, r, I_inv, component_i
         r_mass_derivative = r_mass_derivatives[i]
         velocity_mass_derivatives.append(-1*mass_inv * impulse_mass_derivative + impulse * mass_inv*mass_inv)
         angular_velocity_mass_derivatives.append(np.array([0.,1.,0.])*(-1*np.matmul(I_inv,np.cross(r,impulse_mass_derivative)) - np.matmul(I_inv,np.cross(r_mass_derivative,impulse)) - np.matmul(I_inv_mass_derivative,np.cross(r,impulse))))
-        print("\t\t\t\t","r",r,"\t\t\t\t","r_mass_derivative",r_mass_derivative)
 
     velocity_mu_derivative = -1*impulse_mu_derivative / shape.mass
     angular_velocity_mu_derivative = -1*np.matmul(I_inv,np.cross(r,impulse_mu_derivative))*np.array([0.,1.,0.])

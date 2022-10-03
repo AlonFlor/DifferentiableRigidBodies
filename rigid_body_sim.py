@@ -228,22 +228,44 @@ class combined_body:
             shape.location = geometry_utils.to_world_coords(self, displacement)
             shape.orientation = geometry_utils.quaternion_mult(self.component_rotations[i], self.orientation)
 
-def set_up_component_shapes(info, location, orientation):
-    internal_shapes = []
+def set_up_component_shapes(info, location, orientation, masses, shape_ground_frictions_in):
+    shapes = []
     center = np.array([0.,0.,0.])
     for coords in info:
         x,y,z = coords
         local_loc = np.array([x, y, z])
         center += local_loc
-        internal_shapes.append(collision_shape("box", (1.,1.,1.), local_loc, orientation, np.array([0., 0., 0.]), np.array([0., 0., 0.]), 1.))
+        shapes.append(collision_shape("box", (1.,1.,1.), local_loc, orientation, np.array([0., 0., 0.]), np.array([0., 0., 0.]), 1.))
 
     center /= len(info)
-    for a_shape in internal_shapes:
+    for a_shape in shapes:
         a_shape.location -= center
-    for a_shape in internal_shapes:
+    for a_shape in shapes:
         a_shape.location = geometry_utils.rotation_from_quaternion(orientation, a_shape.location) + location
 
-    return internal_shapes
+
+    for count,shape in enumerate(shapes):
+        shape.mass = masses[count]
+        shape.I = masses[count]*shape.I_mass_derivative
+        shape.I_inv = np.linalg.inv(shape.I)
+        shape.I_inv_mass_derivatives = [-1 * shape.I_inv * shape.I_inv * shape.I_mass_derivative]  # multiply component by component
+
+    # set coefficients of friction for all shapes
+    shape_shape_frictions = {}
+    '''count = 0
+    for shape in shapes:
+        this_shape_frictions = {}
+        for shape2 in shapes[count+1:]:
+            this_shape_frictions[shape2] = 0.5          #set friction coefficient to 0.5 for now
+        shape_shape_frictions[shape] = this_shape_frictions
+        count += 1'''
+    shape_ground_frictions = {}
+    for shape in shapes:
+        shape_ground_frictions[shape] = 0.02  # set friction coefficient to 0.02 for now
+    for count,shape in enumerate(shapes):
+        shape_ground_frictions[shape] = shape_ground_frictions_in[count]
+
+    return shapes, shape_shape_frictions, shape_ground_frictions
 
 
 
@@ -447,17 +469,6 @@ def run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_
     deviations_from_script.append(combined.angular_velocity[1] - motion_script[next_time_step][12])
     deviations_from_script.append(combined.angular_velocity[2] - motion_script[next_time_step][13])
 
-    '''print()
-    print("shapes[0].mass",shapes[0].mass)
-    print("shapes[1].mass",shapes[1].mass)
-    print("shape_ground_frictions[shapes[0]]",shape_ground_frictions[shapes[0]])
-    print("shape_ground_frictions[shapes[1]]",shape_ground_frictions[shapes[1]])
-    print()
-    print("combined.velocity[0] - motion_script[next_time_step][8]",combined.velocity[0] - motion_script[next_time_step][8])
-    print("combined.velocity[2] - motion_script[next_time_step][10]",combined.velocity[2] - motion_script[next_time_step][10])
-    print("combined.angular_velocity[1] - motion_script[next_time_step][12]",combined.angular_velocity[1] - motion_script[next_time_step][12])
-    print("\n")'''
-
     deviations_from_script_squared = []
     for deviation_from_script in deviations_from_script:
         deviations_from_script_squared.append(deviation_from_script*deviation_from_script)
@@ -514,59 +525,18 @@ def run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_
     return sum_deviations_from_script_squared, sum_deviations_from_script_squared_mass_derivatives, sum_deviations_from_script_squared_mu_derivatives
 
 
-def set_shape_masses_and_frictions(shapes, doing_friction, shape_to_alter_index, value, shape_to_alter_index_shape2=None, value2=None):
-
-    if not doing_friction:
-        shapes[shape_to_alter_index].mass = value
-        #print("shapes[shape_to_alter_index].I",shapes[shape_to_alter_index].I)
-        #print("shapes[shape_to_alter_index].I_mass_derivative",shapes[shape_to_alter_index].I_mass_derivative)
-        shapes[shape_to_alter_index].I = value*shapes[shape_to_alter_index].I_mass_derivative
-        shapes[shape_to_alter_index].I_inv = np.linalg.inv(shapes[shape_to_alter_index].I)
-        shapes[shape_to_alter_index].I_inv_mass_derivatives = \
-            [-1 * shapes[shape_to_alter_index].I_inv * shapes[shape_to_alter_index].I_inv * shapes[shape_to_alter_index].I_mass_derivative]  # multiply component by component
-        if shape_to_alter_index_shape2 is not None:
-            shapes[shape_to_alter_index_shape2].mass = value2
-            shapes[shape_to_alter_index_shape2].I = value2 * shapes[shape_to_alter_index_shape2].I_mass_derivative
-            shapes[shape_to_alter_index_shape2].I_inv = np.linalg.inv(shapes[shape_to_alter_index_shape2].I)
-            shapes[shape_to_alter_index_shape2].I_inv_mass_derivatives = \
-                [-1 * shapes[shape_to_alter_index_shape2].I_inv * shapes[shape_to_alter_index_shape2].I_inv * shapes[shape_to_alter_index_shape2].I_mass_derivative]
-                # multiply component by component
-
-    # set coefficients of friction for all shapes
-    shape_shape_frictions = {}
-    '''count = 0
-    for shape in shapes:
-        this_shape_frictions = {}
-        for shape2 in shapes[count+1:]:
-            this_shape_frictions[shape2] = 0.5          #set friction coefficient to 0.5 for now
-        shape_shape_frictions[shape] = this_shape_frictions
-        count += 1'''
-    shape_ground_frictions = {}
-    for shape in shapes:
-        shape_ground_frictions[shape] = 0.02  # set friction coefficient to 0.02 for now
-    if doing_friction:
-        shape_ground_frictions[shapes[shape_to_alter_index]] = value
-        if shape_to_alter_index_shape2 is not None:
-            shape_ground_frictions[shapes[shape_to_alter_index_shape2]] = value2
-
-    return shapes, shape_shape_frictions, shape_ground_frictions
-
-
-
-def run_mass_derivatives_sweep_in_combined_shape(shape_to_alter_index, values_to_count):
+def run_mass_derivatives_sweep_in_combined_shape(shape_to_alter_index, values_to_count, shape_masses, shape_ground_frictions_in):
     result = []
     result_deriv = []
     result_deriv_estimate = []
 
     outermost_count = 0
 
-
-
     for value in values_to_count:
         # make shapes
-        shapes = []
-        shapes += set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]))
-        shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, False, shape_to_alter_index, value)
+        shape_masses[shape_to_alter_index] = value
+        shapes, shape_shape_frictions, shape_ground_frictions = \
+            set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]), shape_masses, shape_ground_frictions_in)
         combined = combined_body(shapes, np.array([0., 0., 0.]), np.array([0., 0., 0.]))
 
         #append the results to the list
@@ -592,7 +562,7 @@ def run_mass_derivatives_sweep_in_combined_shape(shape_to_alter_index, values_to
     print("derivatives avg error =",avg_abs_error)
 
 
-def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count, motion_script, time_step):
+def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count, motion_script, time_step, shape_masses, shape_ground_frictions_in):
     result = []
     result_deriv = []
     result_deriv_estimate = []
@@ -602,9 +572,12 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
 
     for value in values_to_count:
         # make shapes
-        shapes = []
-        shapes += set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]))
-        shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, doing_friction, shape_to_alter_index, value)
+        if doing_friction:
+            shape_ground_frictions_in[shape_to_alter_index] = value
+        else:
+            shape_masses[shape_to_alter_index]=value
+        shapes, shape_shape_frictions, shape_ground_frictions = \
+            set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]), shape_masses, shape_ground_frictions_in)
         combined = combined_body(shapes, np.array([0., 0., 0.]), np.array([0., 0., 0.]))
 
         deviation_from_script_squared, \
@@ -649,7 +622,7 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
     else:
         print("derivatives avg relative error is not available, since estimated derivatives are zero or close to zero")'''
 
-def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing_friction, values_to_count, motion_script, time_step):
+def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing_friction, values_to_count, motion_script, time_step, shape_masses, shape_ground_frictions_in):
     X, Y = np.meshgrid(values_to_count, values_to_count)
 
     zero = X*0
@@ -661,9 +634,14 @@ def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing
     for coord_x, value_x in enumerate(values_to_count):
         for coord_y, value_y in enumerate(values_to_count):
             # make shapes
-            shapes = []
-            shapes += set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]))
-            shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, doing_friction, shape_to_alter_index1, value_x, shape_to_alter_index2, value_y)
+            if doing_friction:
+                shape_ground_frictions_in[shape_to_alter_index1] = value_x
+                shape_ground_frictions_in[shape_to_alter_index2] = value_y
+            else:
+                shape_masses[shape_to_alter_index1] = value_x
+                shape_masses[shape_to_alter_index2] = value_y
+            shapes, shape_shape_frictions, shape_ground_frictions = \
+                set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]), shape_masses, shape_ground_frictions_in)
             combined = combined_body(shapes, np.array([0., 0., 0.]), np.array([0., 0., 0.]))
 
             Z_result[coord_x, coord_y], mass_derivatives, mu_derivatives = \
@@ -681,29 +659,24 @@ def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing
     draw_data.plot_3D_data(X, Y, Z_result, Z_x_derivative, Z_x_derivative_estimate, zero)
     draw_data.plot_3D_data(X, Y, Z_result, Z_y_derivative, Z_y_derivative_estimate, zero)
 
-def find_values(motion_script, time_step, doing_friction, initial_guess, bounds):
+def find_values(motion_script, time_step, initial_guess, bounds, shapes_len):
     #mu only. Add masses later.
 
     def func(x):
         # make shapes
-        shapes = []
-        shapes += set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]))
-        shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, doing_friction, 0, x[0], 1, x[1])
+        shapes, shape_shape_frictions, shape_ground_frictions = set_up_component_shapes(combined_info, np.array([0., 0., 0.]), np.array([0., 0., 0., 1.]), x[:shapes_len], x[shapes_len:])
         combined = combined_body(shapes, np.array([0., 0., 0.]), np.array([0., 0., 0.]))
-        result, mass_derivatives, mu_derivatives = run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
-        return (10000*result, [10000*mu_derivatives[0], 10000*mu_derivatives[1]])
+
+        result, mass_derivatives, mu_derivatives = \
+            run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
+        return 10000*result, 10000*np.array([mass_derivatives, mu_derivatives]).flatten()
     result = scipy.optimize.minimize(func, x0 = initial_guess, method='L-BFGS-B', jac=True, bounds=bounds)
 
     return result.x
 
-def ordinary_run(new_mu0 = None, new_mu1 = None, motion_script = None):
+def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
     # make shapes
-    shapes = []
-    shapes += set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation)
-    if new_mu0 is not None:
-        shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, True, 0, new_mu0, 1, new_mu1)
-    else:
-        shapes, shape_shape_frictions, shape_ground_frictions = set_shape_masses_and_frictions(shapes, False)
+    shapes, shape_shape_frictions, shape_ground_frictions =  set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, shape_masses, shape_ground_frictions_in)
     combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
 
     # set time
@@ -732,14 +705,15 @@ motion_script = file_handling.read_motion_script_file(os.path.join("test3","moti
 
 #ordinary_run()
 #ordinary_run(motion_script=motion_script)
-run_derivatives_sweep(0, False, masses, motion_script, time_step)
-#run_derivatives_sweep(0, True, mu_values, motion_script, time_step)
-#run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step)
-'''initial_guess = np.array([0.005, 0.4])
-ordinary_run(new_mu0=initial_guess[0], new_mu1=initial_guess[1])
-bounds = [(0., 0.5), (0., 0.5)]
-vals = find_values(motion_script, time_step, True, initial_guess, bounds)
-ordinary_run(new_mu0=vals[0], new_mu1=vals[1])
-print(vals)'''
+#run_derivatives_sweep(0, False, masses, motion_script, time_step, [1.,1.], [0.2, 0.02])
+#run_derivatives_sweep(0, True, mu_values, motion_script, time_step, [1.,1.], [0.2, 0.02])
+#run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step, [1.,1.], [0.2, 0.02])
+shapes_len = len(combined_info)
+initial_guess = np.array([1., 1., 0.005, 0.4])
+ordinary_run(initial_guess[:shapes_len], initial_guess[shapes_len:])
+bounds = [(0., 0.5), (0., 0.5), (0., 0.5), (0., 0.5)]
+vals = find_values(motion_script, time_step, initial_guess, bounds, shapes_len)
+ordinary_run(vals[:shapes_len], vals[shapes_len:])
+print(vals)
 
-#run_mass_derivatives_sweep_in_combined_shape(0, masses)
+#run_mass_derivatives_sweep_in_combined_shape(0, masses, [1.,1.], [0.2, 0.02])
