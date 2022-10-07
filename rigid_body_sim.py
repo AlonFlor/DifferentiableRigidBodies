@@ -689,7 +689,7 @@ def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
 
 #load shape info
 print()
-combined_info = file_handling.read_combined_boxes_rigid_body_file("try1.txt")
+combined_info = file_handling.read_combined_boxes_rigid_body_file("hammer.txt")
 rotation = geometry_utils.normalize(np.array([0., 0.3, 0., 0.95]))
 
 # set dt
@@ -699,20 +699,24 @@ dt = 0.001
 masses = np.linspace(0.5, 5., 1000)
 mu_values = np.linspace(0, 0.5, 1000)
 
-time_step = 100
-motion_script = file_handling.read_motion_script_file(os.path.join("test1","motion_script.csv"))
+actual_mass_values = 1.*np.ones((len(combined_info)))
+actual_mu_values = 0.02*np.ones((len(combined_info)))
 
-#ordinary_run([1.,1.], [0.2, 0.02])
-#ordinary_run(motion_script=motion_script)
-#run_derivatives_sweep(0, False, masses, motion_script, time_step, [1.,1.], [0.2, 0.02])
-#run_derivatives_sweep(0, True, mu_values, motion_script, time_step, [1.,1.], [0.2, 0.02])
-#run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step, [1.,1.], [0.2, 0.02])
-shapes_len = len(combined_info)
-initial_guess = np.array([1., 1., 0.005, 0.4])
+time_step = 100
+motion_script = file_handling.read_motion_script_file(os.path.join("test5","motion_script.csv"))
+
+ordinary_run(actual_mass_values, actual_mu_values)
+#ordinary_run(actual_mass_values, actual_mu_values, motion_script=motion_script)
+#run_derivatives_sweep(0, False, masses, motion_script, time_step, actual_mass_values, actual_mu_values)
+#run_derivatives_sweep(0, True, mu_values, motion_script, time_step, actual_mass_values, actual_mu_values)
+#run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step, actual_mass_values, actual_mu_values)
+'''shapes_len = len(combined_info)
+#initial_guess = np.array([1., 1., 0.005, 0.4])
+initial_guess = np.concatenate(np.random.random(len(combined_info)) - 0.5 + actual_mass_values, (np.random.random(len(combined_info)) - 0.5)/3 + actual_mu_values)
 ordinary_run(initial_guess[:shapes_len], initial_guess[shapes_len:])
 bounds = [(0.5, 5.), (0.5, 5.), (0., 0.5), (0., 0.5)]
 vals = find_values(motion_script, time_step, initial_guess, bounds, shapes_len)
 ordinary_run(vals[:shapes_len], vals[shapes_len:])
-print(vals)
+print(vals)'''
 
 #run_mass_derivatives_sweep_in_combined_shape(0, masses, [1.,1.], [0.2, 0.02])
