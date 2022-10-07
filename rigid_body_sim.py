@@ -169,7 +169,7 @@ class combined_body:
         for index in np.arange(len(self.components)):
             shape = self.components[index]
             self.COM_mass_derivatives.append(geometry_utils.to_world_coords(shape, shape.COM) / self.mass - second_term)
-            #d_sl/COMd_mass = (d_world_COM/d_mass) / self.mass - world_COM / (self.mass * self.mass)
+            #d_COM/d_mass = (d_world_COM/d_mass) / self.mass - world_COM / (self.mass * self.mass)
         #get mass derivatives of moment of inertia and its inverse, and of its location
         self.I_mass_derivatives = []
         for index in np.arange(len(self.components)):
@@ -699,20 +699,20 @@ dt = 0.001
 masses = np.linspace(0.5, 5., 1000)
 mu_values = np.linspace(0, 0.5, 1000)
 
-time_step = 1000
+time_step = 100
 motion_script = file_handling.read_motion_script_file(os.path.join("test1","motion_script.csv"))
 
 #ordinary_run([1.,1.], [0.2, 0.02])
 #ordinary_run(motion_script=motion_script)
-run_derivatives_sweep(0, False, masses, motion_script, time_step, [1.,1.], [0.2, 0.02])
+#run_derivatives_sweep(0, False, masses, motion_script, time_step, [1.,1.], [0.2, 0.02])
 #run_derivatives_sweep(0, True, mu_values, motion_script, time_step, [1.,1.], [0.2, 0.02])
 #run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step, [1.,1.], [0.2, 0.02])
-'''shapes_len = len(combined_info)
+shapes_len = len(combined_info)
 initial_guess = np.array([1., 1., 0.005, 0.4])
 ordinary_run(initial_guess[:shapes_len], initial_guess[shapes_len:])
-bounds = [(0., 0.5), (0., 0.5), (0., 0.5), (0., 0.5)]
+bounds = [(0.5, 5.), (0.5, 5.), (0., 0.5), (0., 0.5)]
 vals = find_values(motion_script, time_step, initial_guess, bounds, shapes_len)
 ordinary_run(vals[:shapes_len], vals[shapes_len:])
-print(vals)'''
+print(vals)
 
 #run_mass_derivatives_sweep_in_combined_shape(0, masses, [1.,1.], [0.2, 0.02])
