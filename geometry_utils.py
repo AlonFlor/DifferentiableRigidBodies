@@ -72,19 +72,19 @@ def rotation_matrix_to_quaternion(R):
     return np.array([(R[0][2] + R[2][0])*scale, (R[1][2] + R[2][1])*scale, 0.5*r, (R[1][0] - R[0][1])*scale])
 
 def to_world_coords(shape, vertex):
-    return rotation_from_quaternion(shape.orientation, vertex - shape.COM) + shape.COM + shape.location
+    return rotation_from_quaternion(shape.orientation, vertex) + shape.location
 
 def rotate_only_to_world_coords(shape, vector):
     return rotation_from_quaternion(shape.orientation, vector)
 
 def to_local_coords(shape, world_vertex):
-    return rotation_from_quaternion(quaternion_inverse(shape.orientation), world_vertex - shape.COM - shape.location) + shape.COM
+    return rotation_from_quaternion(quaternion_inverse(shape.orientation), world_vertex - shape.location)
 
 def rotate_only_to_local_coords(shape, vector):
     return rotation_from_quaternion(quaternion_inverse(shape.orientation), vector)
 
 def velocity_of_point(shape, world_vertex):
-    return shape.velocity + np.cross(shape.angular_velocity, world_vertex - shape.location - shape.COM)
+    return shape.velocity + np.cross(shape.angular_velocity, world_vertex - shape.location)
 
 
 
