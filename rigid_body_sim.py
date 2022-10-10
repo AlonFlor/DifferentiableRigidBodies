@@ -440,7 +440,7 @@ def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions,
         motion_script.close()
 
         print("writing simulation files")
-        file_handling.write_simulation_files(shapes, loc_file, dir_name, dt, 24)
+        file_handling.write_simulation_files(shapes, shape_ground_frictions, loc_file, dir_name, dt, 24)
 
 
 
@@ -689,6 +689,7 @@ def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
 
 #load shape info
 print()
+#combined_info = file_handling.read_combined_boxes_rigid_body_file("try1.txt")
 combined_info = file_handling.read_combined_boxes_rigid_body_file("hammer.txt")
 rotation = geometry_utils.normalize(np.array([0., 0.3, 0., 0.95]))
 
@@ -702,8 +703,14 @@ mu_values = np.linspace(0, 0.5, 1000)
 actual_mass_values = 1.*np.ones((len(combined_info)))
 actual_mu_values = 0.02*np.ones((len(combined_info)))
 
+##for 2-component shape:
+#actual_mass_values[0]=3.
+#for hammer
+for i in np.arange(32):
+    actual_mass_values[i] = 10.
+
 time_step = 100
-motion_script = file_handling.read_motion_script_file(os.path.join("test5","motion_script.csv"))
+#motion_script = file_handling.read_motion_script_file(os.path.join("test5","motion_script.csv"))
 
 ordinary_run(actual_mass_values, actual_mu_values)
 #ordinary_run(actual_mass_values, actual_mu_values, motion_script=motion_script)
