@@ -403,7 +403,7 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
         ground_contact_friction_coefficients.append(shape_ground_frictions[shape])
 
     #apply external force
-    collision_handling_basic_impulse.external_force_impulse(combined, dt)
+    #collision_handling_basic_impulse.external_force_impulse(combined, dt)
 
     #handle collisions
     #collision_handling_LCP.handle_collisions_LCP(combined, ground_contacts_low_level, dt)
