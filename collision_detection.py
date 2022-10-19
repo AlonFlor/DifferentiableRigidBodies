@@ -5,8 +5,7 @@ import geometry_utils
 def AABB_intersect(shape1, shape2):
     a = shape1.bounding_box
     b = shape2.bounding_box
-    return ((a[0] <= b[1]) and (b[0] <= a[1])) and ((a[2] <= b[3]) and (b[2] <= a[3])) and (
-                (a[4] <= b[5]) and (b[4] <= a[5]))
+    return ((a[0] <= b[1]) and (b[0] <= a[1])) and ((a[2] <= b[3]) and (b[2] <= a[3])) and ((a[4] <= b[5]) and (b[4] <= a[5]))
 
 
 # signed distance functions
@@ -18,18 +17,15 @@ def generate_signed_distance_function_for_face(center, vertices, normals, face):
 
 
 def generate_signed_distance_function_for_faces(faces_sdf):
-    return lambda local_coord: faces_sdf[np.argmax(np.array([face_sdf(local_coord)[0] for face_sdf in faces_sdf]))](
-        local_coord)
+    return lambda local_coord: faces_sdf[np.argmax(np.array([face_sdf(local_coord)[0] for face_sdf in faces_sdf]))](local_coord)
 
 
 def generate_signed_distance_function_sphere(radius):
-    return lambda local_coord: (
-    np.sqrt(np.dot(local_coord, local_coord)) - radius, local_coord / np.sqrt(np.dot(local_coord, local_coord)))
+    return lambda local_coord: (np.sqrt(np.dot(local_coord, local_coord)) - radius, local_coord / np.sqrt(np.dot(local_coord, local_coord)))
 
 
 def generate_signed_distance_function_cylinder(radius):
-    return lambda local_coord: (np.sqrt(np.dot(local_coord[:2], local_coord[:2])) - radius,
-                                np.append(local_coord[:2] / np.sqrt(np.dot(local_coord[:2], local_coord[:2])), 0.))
+    return lambda local_coord: (np.sqrt(np.dot(local_coord[:2], local_coord[:2])) - radius, np.append(local_coord[:2] / np.sqrt(np.dot(local_coord[:2], local_coord[:2])), 0.))
 
 
 def min_max_points_along_axis(points, axis):
@@ -67,10 +63,7 @@ def translation_vector(shape1_points, shape2_points, axis):
 
 
 def find_edge_contact_box_cylinder(v1_2, v2_2, cylinder):
-    edge_closest_point, cylinder_axis_closest_point = geometry_utils.points_on_line_segments_closest_to_each_other(v1_2,
-                                                                                                                   v2_2,
-                                                                                                                   cylinder.end1,
-                                                                                                                   cylinder.end2)
+    edge_closest_point, cylinder_axis_closest_point = geometry_utils.points_on_line_segments_closest_to_each_other(v1_2,  v2_2, cylinder.end1, cylinder.end2)
     if cylinder.signed_distance(edge_closest_point)[0] < 0:
         return edge_closest_point
     return None
@@ -115,16 +108,14 @@ def find_edge_contact_box_box(point, normalized_edge_vector, signed_distance, si
     return point + stride * normalized_edge_vector
 
 
-def find_edge_contact_wrapper_code_box_box(new_point, sdf_new_point, sdf_normal_new_point, other_point,
-                                           box2_signed_distance):
+def find_edge_contact_wrapper_code_box_box(new_point, sdf_new_point, sdf_normal_new_point, other_point, box2_signed_distance):
     edge_vector = other_point - new_point
     normalized_edge_vector = geometry_utils.normalize(edge_vector)
     stride_max_size = np.linalg.norm(edge_vector)
     count = 1  # two tries allowed
     while count >= 0:
         if (np.abs(np.dot(normalized_edge_vector, sdf_normal_new_point)) > 0.00001):  # threshold
-            new_point = find_edge_contact_box_box(new_point, normalized_edge_vector, sdf_new_point,
-                                                  sdf_normal_new_point, stride_max_size)
+            new_point = find_edge_contact_box_box(new_point, normalized_edge_vector, sdf_new_point, sdf_normal_new_point, stride_max_size)
             if new_point is not None:
                 sdf_new_point, sdf_normal_new_point = box2_signed_distance(new_point)
                 edge_vector = other_point - new_point
@@ -140,10 +131,8 @@ def find_edge_contact_wrapper_code_box_box(new_point, sdf_new_point, sdf_normal_
     return None
 
 
-def find_edge_contact_point_box_box(shape1, shape2, vertex_sdf, new_point, sdf_new_point, sdf_normal_new_point,
-                                    other_point, v1_w, v2_w, v1_2, v2_2, new_point_first_direction_w):
-    edge_result = find_edge_contact_wrapper_code_box_box(new_point, sdf_new_point, sdf_normal_new_point, other_point,
-                                                         shape2.signed_distance)
+def find_edge_contact_point_box_box(shape1, shape2, vertex_sdf, new_point, sdf_new_point, sdf_normal_new_point, other_point, v1_w, v2_w, v1_2, v2_2, new_point_first_direction_w):
+    edge_result = find_edge_contact_wrapper_code_box_box(new_point, sdf_new_point, sdf_normal_new_point, other_point, shape2.signed_distance)
     if edge_result is not None:
         # add point from the other direction only if it does not the same as the point from the first direction
         new_point, sdf_normal_new_point = edge_result
@@ -173,17 +162,14 @@ def find_edges_contact_points_box_box(shape1, shape2, vertex_sdf):
         new_point = v1_2
         sdf_new_point = vertex_sdf[v1_index][1]
         sdf_normal_new_point = vertex_sdf[v1_index][2]
-        edge_contact_point = find_edge_contact_point_box_box(shape1, shape2, vertex_sdf, new_point, sdf_new_point,
-                                                             sdf_normal_new_point, v2_2, v1_w, v2_w, v1_2, v2_2, None)
+        edge_contact_point = find_edge_contact_point_box_box(shape1, shape2, vertex_sdf, new_point, sdf_new_point, sdf_normal_new_point, v2_2, v1_w, v2_w, v1_2, v2_2, None)
         if edge_contact_point is not None:
             edges_contact_points.append(edge_contact_point)
         # try edge contact point from the other direction
         new_point = v2_2
         sdf_new_point = vertex_sdf[v2_index][1]
         sdf_normal_new_point = vertex_sdf[v2_index][2]
-        edge_contact_point = find_edge_contact_point_box_box(shape1, shape2, vertex_sdf, new_point, sdf_new_point,
-                                                             sdf_normal_new_point, v1_2, v1_w, v2_w, v1_2, v2_2,
-                                                             edge_contact_point)
+        edge_contact_point = find_edge_contact_point_box_box(shape1, shape2, vertex_sdf, new_point, sdf_new_point, sdf_normal_new_point, v1_2, v1_w, v2_w, v1_2, v2_2, edge_contact_point)
         if edge_contact_point is not None:
             edges_contact_points.append(edge_contact_point)
 
@@ -242,8 +228,7 @@ def get_box_box_contact_point_and_normal(shape1, shape2):
         edge2 = edge_contact_points[2][1] - edge_contact_points[2][2]
         local_normal = geometry_utils.normalize(np.cross(edge1, edge2))
         shape2_center_w = geometry_utils.to_world_coords(shape2, shape2.center)
-        if np.linalg.norm(center_contact + local_normal - shape2_center_w) < np.linalg.norm(
-                center_contact - local_normal - shape2_center_w):
+        if np.linalg.norm(center_contact + local_normal - shape2_center_w) < np.linalg.norm(center_contact - local_normal - shape2_center_w):
             local_normal *= -1
         local_normal = geometry_utils.normalize(local_normal)
     elif len(vertex_contact_points) == 1:
@@ -252,11 +237,8 @@ def get_box_box_contact_point_and_normal(shape1, shape2):
     else:
         center_contact_1 = geometry_utils.to_local_coords(shape1, center_contact)
         center_contact_2 = geometry_utils.to_local_coords(shape2, center_contact)
-        normal_candidate_1 = -1 * geometry_utils.rotate_only_to_world_coords(shape1,
-                                                                             shape1.signed_distance(center_contact_1)[
-                                                                                 1])
-        normal_candidate_2 = geometry_utils.rotate_only_to_world_coords(shape2,
-                                                                        shape2.signed_distance(center_contact_2)[1])
+        normal_candidate_1 = -1 * geometry_utils.rotate_only_to_world_coords(shape1, shape1.signed_distance(center_contact_1)[1])
+        normal_candidate_2 = geometry_utils.rotate_only_to_world_coords(shape2, shape2.signed_distance(center_contact_2)[1])
         if np.dot(normal_candidate_1, normal_candidate_2) == 1:
             local_normal = normal_candidate_2
         else:
@@ -360,10 +342,7 @@ def get_cylinder_cylinder_contact_point_and_normal(shape1, shape2):
     shape2_end1_w = geometry_utils.to_world_coords(shape2, shape2.end1)
     shape2_end2_w = geometry_utils.to_world_coords(shape2, shape2.end2)
 
-    shape1_point_w, shape2_point_w = geometry_utils.points_on_line_segments_closest_to_each_other(shape1_end1_w,
-                                                                                                  shape1_end2_w,
-                                                                                                  shape2_end1_w,
-                                                                                                  shape2_end2_w)
+    shape1_point_w, shape2_point_w = geometry_utils.points_on_line_segments_closest_to_each_other(shape1_end1_w, shape1_end2_w, shape2_end1_w, shape2_end2_w)
     shape1_cylindrical_projection = geometry_utils.normalize(shape2_point_w - shape1_point_w)
     shape2_cylindrical_projection = -1 * shape1_cylindrical_projection
     shape1_contact_point_w = shape1_point_w + shape1_cylindrical_projection * shape1.radius
@@ -371,8 +350,7 @@ def get_cylinder_cylinder_contact_point_and_normal(shape1, shape2):
     center_contact = 0.5 * (shape1_contact_point_w + shape2_contact_point_w)
 
     # check if there is contact, return nothing if there is no contact
-    if np.linalg.norm(center_contact - shape1_point_w) > shape1.radius or np.linalg.norm(
-            center_contact - shape2_point_w) > shape2.radius:
+    if np.linalg.norm(center_contact - shape1_point_w) > shape1.radius or np.linalg.norm(center_contact - shape2_point_w) > shape2.radius:
         return []
 
     return center_contact, shape2_cylindrical_projection
@@ -382,8 +360,7 @@ def get_cylinder_sphere_contact_point_and_normal(cylinder, sphere):
     cylinder_end1_w = geometry_utils.to_world_coords(cylinder, cylinder.end1)
     cylinder_end2_w = geometry_utils.to_world_coords(cylinder, cylinder.end2)
 
-    cylinder_point_w = geometry_utils.line_segment_closest_point_from_other_point(sphere.location, cylinder_end1_w,
-                                                                                  cylinder_end2_w)
+    cylinder_point_w = geometry_utils.line_segment_closest_point_from_other_point(sphere.location, cylinder_end1_w, cylinder_end2_w)
     sphere_to_cylinder_vector = geometry_utils.normalize(cylinder_point_w - sphere.location)
     sphere_contact_point_w = sphere.location + sphere_to_cylinder_vector * sphere.radius
     cylinder_contact_point_w = cylinder_point_w - sphere_to_cylinder_vector * cylinder.radius

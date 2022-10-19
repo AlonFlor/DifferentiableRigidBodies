@@ -195,9 +195,9 @@ def write_contacts_in_motion_script(shapes, shape_shape_contacts_low_level, grou
 def write_simulation_files(shapes, shape_ground_frictions, file, dir_name, dt, fps):
     #print out to a file the component shapes' masses and frictions
     masses_and_frictions = open(os.path.join(dir_name,"masses_and_frictions.csv"), "w")
-    masses_and_frictions.write("mass,friction\n")
+    masses_and_frictions.write("mass,friction,mass*friction\n")
     for shape in shapes:
-        masses_and_frictions.write(str(shape.mass)+","+str(shape_ground_frictions[shape])+"\n")
+        masses_and_frictions.write(str(shape.mass)+","+str(shape_ground_frictions[shape])+","+str(shape.mass*shape_ground_frictions[shape])+"\n")
     masses_and_frictions.close()
 
     #get data on component shape locations

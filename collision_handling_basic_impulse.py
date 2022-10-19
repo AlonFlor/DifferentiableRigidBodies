@@ -384,3 +384,27 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
 
             else:
                 shape_ground_apply_impulse_derivatives(shape, friction, r, I_inv, shapes.index(shape), friction_mass_derivatives, one_shape_friction_I_inv_mass_derivatives, friction_mu_derivative)
+
+
+def external_force_impulse(combined, dt):
+    # add external force collision
+    # get vertex on the first collision shape with the smallest x coord
+    current_x = combined.components[0].vertices[0][0]
+    vertex_index = 0
+    for i, vertex in enumerate(combined.components[0].vertices):
+        new_x = vertex[0]
+        if new_x < current_x:
+            current_x = new_x
+            vertex_index = i
+    # contact is at the center of mass along the y-axis (height)
+    external_force_contact_location = combined.components[0].vertices[vertex_index] * np.array([1., 0., 1.])
+    external_force_contact_location[1] = combined.components[0].location[1]
+    external_force_direction = np.array([1., 0., 0.])
+    external_force_impulse_magn = .1 * dt
+    external_force_impulse = external_force_impulse_magn*external_force_direction
+
+    r = external_force_contact_location - combined.COM - combined.location
+    R = geometry_utils.quaternion_to_rotation_matrix(combined.orientation)
+    I_inv = np.matmul(R, np.matmul(combined.I_inv, R.T))
+
+    shape_ground_apply_impulse(combined, external_force_impulse, r, I_inv)

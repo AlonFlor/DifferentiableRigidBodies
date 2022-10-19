@@ -3,6 +3,7 @@ import scipy
 import os
 import collision_handling_basic_impulse
 import collision_detection
+#import collision_handling_LCP
 import geometry_utils
 import file_handling
 import draw_data
@@ -315,7 +316,7 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
     combined.orientation = geometry_utils.normalize(combined.orientation)
     combined.orientation_derivative = geometry_utils.orientation_derivative(combined.orientation, combined.angular_velocity)
 
-    '''#apply external forces
+    '''#apply gravity explicitly
     for shape in shapes:
         shape.velocity[1] -= 9.8*dt
     combined.velocity[1] -= 9.8*dt'''
@@ -401,7 +402,11 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
         shape, contact = ground_contacts_low_level[i]
         ground_contact_friction_coefficients.append(shape_ground_frictions[shape])
 
+    #apply external force
+    collision_handling_basic_impulse.external_force_impulse(combined, dt)
+
     #handle collisions
+    #collision_handling_LCP.handle_collisions_LCP(combined, ground_contacts_low_level, dt)
     collision_handling_basic_impulse.handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients)
 
 
@@ -658,7 +663,6 @@ def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing
     draw_data.plot_3D_data(X, Y, Z_result, Z_y_derivative, Z_y_derivative_estimate, zero)
 
 def find_values(motion_script, time_step, initial_guess, bounds, shapes_len):
-    #mu only. Add masses later.
 
     def func(x):
         # make shapes
@@ -667,9 +671,28 @@ def find_values(motion_script, time_step, initial_guess, bounds, shapes_len):
 
         result, mass_derivatives, mu_derivatives = \
             run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
-        mult_factor = 10000
-        return mult_factor*result, mult_factor*np.array([mass_derivatives, mu_derivatives]).flatten()
+        if doing_friction:
+            for i in np.arange(shapes_len):
+                mass_derivatives[i] = 0.
+        else:
+            for i in np.arange(shapes_len):
+                mu_derivatives[i] = 0.
+        derivatives = np.array([mass_derivatives, mu_derivatives]).flatten()
+        global mult_factor
+        if mult_factor is None:
+            size = np.linalg.norm(derivatives)
+            mult_factor = float(shapes_len) / size
+        return mult_factor*result, mult_factor*derivatives
+
+    global mult_factor
+    doing_friction=True
+    mult_factor = None
     result = scipy.optimize.minimize(func, x0 = initial_guess, method='L-BFGS-B', jac=True, bounds=bounds)
+    print("\t\t\t\t\t\t\t\t\t\t\t\t",mult_factor)
+    '''doing_friction = False
+    mult_factor = None
+    result = scipy.optimize.minimize(func, x0=result.x, method='L-BFGS-B', jac=True, bounds=bounds)
+    print("\t\t\t\t\t\t\t\t\t\t\t\t",mult_factor)'''
 
     return result.x
 
@@ -689,8 +712,8 @@ def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
 
 #load shape info
 print()
-#combined_info = file_handling.read_combined_boxes_rigid_body_file("try1.txt")
-combined_info = file_handling.read_combined_boxes_rigid_body_file("hammer.txt")
+combined_info = file_handling.read_combined_boxes_rigid_body_file("try1.txt")
+#combined_info = file_handling.read_combined_boxes_rigid_body_file("hammer.txt")
 rotation = geometry_utils.normalize(np.array([0., 0.3, 0., 0.95]))
 
 # set dt
@@ -703,14 +726,14 @@ mu_values = np.linspace(0, 0.5, 1000)
 actual_mass_values = 1.*np.ones((len(combined_info)))
 actual_mu_values = 0.02*np.ones((len(combined_info)))
 
-##for 2-component shape:
-#actual_mass_values[0]=3.
-#for hammer
-for i in np.arange(32):
-    actual_mass_values[i] = 10.
+#for 2-component shape:
+actual_mass_values[0]=10.
+##for hammer
+#for i in np.arange(32):
+#    actual_mass_values[i] = 10.
 
 time_step = 100
-#motion_script = file_handling.read_motion_script_file(os.path.join("test5","motion_script.csv"))
+#motion_script = file_handling.read_motion_script_file(os.path.join("test2","motion_script.csv"))
 
 ordinary_run(actual_mass_values, actual_mu_values)
 #ordinary_run(actual_mass_values, actual_mu_values, motion_script=motion_script)
@@ -718,10 +741,12 @@ ordinary_run(actual_mass_values, actual_mu_values)
 #run_derivatives_sweep(0, True, mu_values, motion_script, time_step, actual_mass_values, actual_mu_values)
 #run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step, actual_mass_values, actual_mu_values)
 '''shapes_len = len(combined_info)
-#initial_guess = np.array([1., 1., 0.005, 0.4])
-initial_guess = np.concatenate(np.random.random(len(combined_info)) - 0.5 + actual_mass_values, (np.random.random(len(combined_info)) - 0.5)/3 + actual_mu_values)
+#initial_guess = np.concatenate((15*np.random.random(len(combined_info))+0.5, (np.random.random(len(combined_info)))*0.035))
+initial_guess = np.concatenate((actual_mass_values, (np.random.random(len(combined_info)))*0.45))
 ordinary_run(initial_guess[:shapes_len], initial_guess[shapes_len:])
-bounds = [(0.5, 5.), (0.5, 5.), (0., 0.5), (0., 0.5)]
+bounds = [(0.5, 20.)]*len(combined_info) + [(0., 0.5)]*len(combined_info)
+print(initial_guess)
+mult_factor = None
 vals = find_values(motion_script, time_step, initial_guess, bounds, shapes_len)
 ordinary_run(vals[:shapes_len], vals[shapes_len:])
 print(vals)'''
