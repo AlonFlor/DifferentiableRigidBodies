@@ -403,7 +403,7 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
         ground_contact_friction_coefficients.append(shape_ground_frictions[shape])
 
     #apply external force
-    #collision_handling_basic_impulse.external_force_impulse(combined, dt)
+    collision_handling_basic_impulse.external_force_impulse(combined, dt, find_derivatives)
 
     #handle collisions
     #collision_handling_LCP.handle_collisions_LCP(combined, ground_contacts_low_level, dt)
@@ -671,12 +671,12 @@ def find_values(motion_script, time_step, initial_guess, bounds, shapes_len):
 
         result, mass_derivatives, mu_derivatives = \
             run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
-        if doing_friction:
+        '''if doing_friction:
             for i in np.arange(shapes_len):
                 mass_derivatives[i] = 0.
         else:
             for i in np.arange(shapes_len):
-                mu_derivatives[i] = 0.
+                mu_derivatives[i] = 0.'''
         derivatives = np.array([mass_derivatives, mu_derivatives]).flatten()
         global mult_factor
         if mult_factor is None:
@@ -685,11 +685,11 @@ def find_values(motion_script, time_step, initial_guess, bounds, shapes_len):
         return mult_factor*result, mult_factor*derivatives
 
     global mult_factor
-    doing_friction=True
+    doing_friction=False
     mult_factor = None
     result = scipy.optimize.minimize(func, x0 = initial_guess, method='L-BFGS-B', jac=True, bounds=bounds)
     print("\t\t\t\t\t\t\t\t\t\t\t\t",mult_factor)
-    '''doing_friction = False
+    '''doing_friction = True
     mult_factor = None
     result = scipy.optimize.minimize(func, x0=result.x, method='L-BFGS-B', jac=True, bounds=bounds)
     print("\t\t\t\t\t\t\t\t\t\t\t\t",mult_factor)'''
@@ -724,7 +724,7 @@ masses = np.linspace(0.5, 5., 1000)
 mu_values = np.linspace(0, 0.5, 1000)
 
 actual_mass_values = 1.*np.ones((len(combined_info)))
-actual_mu_values = 0.02*np.ones((len(combined_info)))
+actual_mu_values = 0.3*np.ones((len(combined_info)))
 
 #for 2-component shape:
 actual_mass_values[0]=10.
@@ -733,22 +733,26 @@ actual_mass_values[0]=10.
 #    actual_mass_values[i] = 10.
 
 time_step = 100
-#motion_script = file_handling.read_motion_script_file(os.path.join("test2","motion_script.csv"))
+motion_script = file_handling.read_motion_script_file(os.path.join("test3","motion_script.csv"))
 
-ordinary_run(actual_mass_values, actual_mu_values)
+#ordinary_run(actual_mass_values, actual_mu_values)
 #ordinary_run(actual_mass_values, actual_mu_values, motion_script=motion_script)
 #run_derivatives_sweep(0, False, masses, motion_script, time_step, actual_mass_values, actual_mu_values)
 #run_derivatives_sweep(0, True, mu_values, motion_script, time_step, actual_mass_values, actual_mu_values)
 #run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step, actual_mass_values, actual_mu_values)
-'''shapes_len = len(combined_info)
-#initial_guess = np.concatenate((15*np.random.random(len(combined_info))+0.5, (np.random.random(len(combined_info)))*0.035))
-initial_guess = np.concatenate((actual_mass_values, (np.random.random(len(combined_info)))*0.45))
+
+shapes_len = len(combined_info)
+initial_guess = np.concatenate((15*np.random.random(len(combined_info))+0.5, (np.random.random(len(combined_info)))*0.45))
+#initial_guess = np.concatenate((15*np.random.random(len(combined_info))+0.5, actual_mu_values))
+#initial_guess = np.concatenate((actual_mass_values, (np.random.random(len(combined_info)))*0.45))
 ordinary_run(initial_guess[:shapes_len], initial_guess[shapes_len:])
 bounds = [(0.5, 20.)]*len(combined_info) + [(0., 0.5)]*len(combined_info)
 print(initial_guess)
+print(initial_guess[0]*initial_guess[2],initial_guess[1]*initial_guess[3])
 mult_factor = None
 vals = find_values(motion_script, time_step, initial_guess, bounds, shapes_len)
 ordinary_run(vals[:shapes_len], vals[shapes_len:])
-print(vals)'''
+print(vals)
+print(vals[0]*vals[2],vals[1]*vals[3])
 
 #run_mass_derivatives_sweep_in_combined_shape(0, masses, [1.,1.], [0.2, 0.02])
