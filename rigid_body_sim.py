@@ -662,7 +662,7 @@ def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing
     draw_data.plot_3D_data(X, Y, Z_result, Z_x_derivative, Z_x_derivative_estimate, zero)
     draw_data.plot_3D_data(X, Y, Z_result, Z_y_derivative, Z_y_derivative_estimate, zero)
 
-def find_values(motion_script, time_step, initial_guess, bounds, shapes_len):
+def find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes_len):
 
     def func(x):
         # make shapes
@@ -671,17 +671,20 @@ def find_values(motion_script, time_step, initial_guess, bounds, shapes_len):
 
         result, mass_derivatives, mu_derivatives = \
             run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
-        '''if doing_friction:
-            for i in np.arange(shapes_len):
-                mass_derivatives[i] = 0.
-        else:
-            for i in np.arange(shapes_len):
-                mu_derivatives[i] = 0.'''
+        #do for another 49 time steps
+        for i in range(1,50):
+            d_result, d_mass_derivatives, d_mu_derivatives = \
+                run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step+i)
+            result += d_result
+            for j in range(shapes_len):
+                mass_derivatives[j] += d_mass_derivatives[j]
+                mu_derivatives[j] += d_mu_derivatives[j]
         derivatives = np.array([mass_derivatives, mu_derivatives]).flatten()
         global mult_factor
         if mult_factor is None:
             size = np.linalg.norm(derivatives)
             mult_factor = float(shapes_len) / size
+            print("\n\nmult_factor*derivatives\n",mult_factor*derivatives,"\n\n")
         return mult_factor*result, mult_factor*derivatives
 
     global mult_factor
@@ -689,11 +692,14 @@ def find_values(motion_script, time_step, initial_guess, bounds, shapes_len):
     mult_factor = None
     result = scipy.optimize.minimize(func, x0 = initial_guess, method='L-BFGS-B', jac=True, bounds=bounds)
     print("\t\t\t\t\t\t\t\t\t\t\t\t",mult_factor)
-    '''doing_friction = True
-    mult_factor = None
-    result = scipy.optimize.minimize(func, x0=result.x, method='L-BFGS-B', jac=True, bounds=bounds)
-    print("\t\t\t\t\t\t\t\t\t\t\t\t",mult_factor)'''
+    if result.fun > 1.e-6:
+        mult_factor = None
+        result = scipy.optimize.minimize(func, x0=result.x, method='L-BFGS-B', jac=True, bounds=bounds)
+        print("\t\t\t\t\t\t\t\t\t\t\t\t",mult_factor)
 
+    print("result.status", result.status, "result.success", result.success, "number of iterations", result.nit)
+    print("loss function final value:", result.fun, "\t\t\tloss function final value divided by number of components:", result.fun/shapes_len)
+    print("loss function derivatives:\n",result.jac)
     return result.x
 
 def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
@@ -703,7 +709,7 @@ def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
 
     # set time
     time = 0
-    total_time = 10
+    total_time = .15#10
 
     # run the simulation
     run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions,shape_ground_frictions, True, False, motion_script)
@@ -733,11 +739,11 @@ actual_mass_values[0]=10.
 #    actual_mass_values[i] = 10.
 
 time_step = 100
-motion_script = file_handling.read_motion_script_file(os.path.join("test3","motion_script.csv"))
+motion_script = file_handling.read_motion_script_file(os.path.join("test1","motion_script.csv"))
 
 #ordinary_run(actual_mass_values, actual_mu_values)
 #ordinary_run(actual_mass_values, actual_mu_values, motion_script=motion_script)
-#run_derivatives_sweep(0, False, masses, motion_script, time_step, actual_mass_values, actual_mu_values)
+#run_derivatives_sweep(1, False, masses, motion_script, time_step, actual_mass_values, actual_mu_values)
 #run_derivatives_sweep(0, True, mu_values, motion_script, time_step, actual_mass_values, actual_mu_values)
 #run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step, actual_mass_values, actual_mu_values)
 
@@ -745,14 +751,15 @@ shapes_len = len(combined_info)
 initial_guess = np.concatenate((15*np.random.random(len(combined_info))+0.5, (np.random.random(len(combined_info)))*0.45))
 #initial_guess = np.concatenate((15*np.random.random(len(combined_info))+0.5, actual_mu_values))
 #initial_guess = np.concatenate((actual_mass_values, (np.random.random(len(combined_info)))*0.45))
-ordinary_run(initial_guess[:shapes_len], initial_guess[shapes_len:])
+#ordinary_run(initial_guess[:shapes_len], initial_guess[shapes_len:])
 bounds = [(0.5, 20.)]*len(combined_info) + [(0., 0.5)]*len(combined_info)
 print(initial_guess)
-print(initial_guess[0]*initial_guess[2],initial_guess[1]*initial_guess[3])
+#print(initial_guess[0]*initial_guess[2],initial_guess[1]*initial_guess[3])
 mult_factor = None
-vals = find_values(motion_script, time_step, initial_guess, bounds, shapes_len)
+vals = find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes_len)
+ughudhrtuhg = input("Go?")
 ordinary_run(vals[:shapes_len], vals[shapes_len:])
 print(vals)
-print(vals[0]*vals[2],vals[1]*vals[3])
+#print(vals[0]*vals[2],vals[1]*vals[3])
 
 #run_mass_derivatives_sweep_in_combined_shape(0, masses, [1.,1.], [0.2, 0.02])

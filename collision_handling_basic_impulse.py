@@ -405,7 +405,7 @@ def external_force_impulse(combined, dt, find_derivatives):
     external_force_contact_location = combined.components[0].vertices[0] * np.array([1., 0., 1.])
     external_force_contact_location[1] = combined.components[0].location[1]
     external_force_direction = np.array([1., 0., 0.])
-    external_force_impulse_magn = 15. * dt
+    external_force_impulse_magn = 1.5 * dt
     external_force_impulse = external_force_impulse_magn*external_force_direction
 
     r = external_force_contact_location - combined.location
