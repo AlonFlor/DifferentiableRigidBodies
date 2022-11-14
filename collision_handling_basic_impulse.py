@@ -139,8 +139,8 @@ def shape_ground_apply_impulse(shape, impulse, r, I_inv):
     shape.velocity -= impulse / shape.mass
     shape.angular_velocity -= np.matmul(I_inv,np.cross(r,impulse))*np.array([0.,1.,0.])
 
-    print("shape.velocity -= ",impulse / shape.mass)
-    print("shape.angular_velocity -= ",np.matmul(I_inv,np.cross(r,impulse))*np.array([0.,1.,0.]))
+    #print("shape.velocity -= ",impulse / shape.mass)
+    #print("shape.angular_velocity -= ",np.matmul(I_inv,np.cross(r,impulse))*np.array([0.,1.,0.]))
 
 def shape_ground_apply_impulse_derivatives(shape, impulse, r, I_inv, component_index, impulse_mass_derivatives, I_inv_mass_derivatives, impulse_mu_derivative=None):
     #derivatives
@@ -153,10 +153,21 @@ def shape_ground_apply_impulse_derivatives(shape, impulse, r, I_inv, component_i
         I_inv_mass_derivative = I_inv_mass_derivatives[i]
         velocity_mass_derivatives.append(-1*mass_inv * impulse_mass_derivative + impulse * mass_inv*mass_inv)
         angular_velocity_mass_derivatives.append(np.array([0.,1.,0.])*(-1*np.matmul(I_inv,np.cross(r,impulse_mass_derivative)) - np.matmul(I_inv_mass_derivative,np.cross(r,impulse))))
+    #print("velocity mass derivatives from this force:",velocity_mass_derivatives)
+    #print("angular velocity mass derivatives from this force:", angular_velocity_mass_derivatives)
+    '''total_v = 0.
+    total_a = 0.
+    for i in np.arange(len(impulse_mass_derivatives)):
+        total_v+=velocity_mass_derivatives[i]
+        total_a+=angular_velocity_mass_derivatives[i]
+    print("subtotals delta mass derivatives from this force:",total_v[0], total_v[2], total_a[1])
+    print("total delta mass derivatives from this force:",total_v[0] + total_v[2] + total_a[1])'''
 
     if impulse_mu_derivative is not None:
         velocity_mu_derivative = -1*impulse_mu_derivative / shape.mass
         angular_velocity_mu_derivative = -1*np.matmul(I_inv,np.cross(r,impulse_mu_derivative))*np.array([0.,1.,0.])
+        #print("velocity mu derivative:",velocity_mu_derivative)
+        #print("angular velocity mu derivative:",angular_velocity_mu_derivative)
 
     #add the mass and friction derivatives to the shape's records
     for i in np.arange(len(impulse_mass_derivatives)):
@@ -315,7 +326,7 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
         shape_shape_apply_impulse(shape1, shape2, friction, r_1, r_2, I_inv_1, I_inv_2)'''
     for i in np.arange(len(ground_contacts)):
         normal_impulse_magn = np.linalg.norm(ground_contact_impulses[i])
-        print("normal_impulse_magn", normal_impulse_magn)
+        #print("normal_impulse_magn", normal_impulse_magn)
         if normal_impulse_magn <= 0.000001:  # threshold
             continue
 
@@ -323,7 +334,7 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
         world_point, normal = contact
 
         tangential_velocity = ground_contact_tangential_velocities[i]
-        print("tangential_velocity", tangential_velocity)
+        #print("tangential_velocity", tangential_velocity)
         tangential_velocity_magn = np.linalg.norm(tangential_velocity)
         if tangential_velocity_magn <= 0.000001:  # threshold
             continue
@@ -333,9 +344,9 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
 
         friction_direction = tangential_velocity / tangential_velocity_magn
         relative_motion_friction, r, I_inv, R, impulse_denom, impulse_num = shape_ground_collision_impulse(shape, (world_point, friction_direction), tangential_velocity_magn, restitution)
-        relative_motion_friction_magn = np.linalg.norm(relative_motion_friction)
+        #relative_motion_friction_magn = np.linalg.norm(relative_motion_friction)
         mu_normal_friction_magn = mu * normal_impulse_magn
-        friction = friction_direction * min(relative_motion_friction_magn, mu_normal_friction_magn)
+        friction = friction_direction * mu_normal_friction_magn#min(relative_motion_friction_magn, mu_normal_friction_magn)
         if shape.parent is not None:
             r_combined = world_point - shape.parent.location
             R_combined = geometry_utils.quaternion_to_rotation_matrix(shape.parent.orientation)
@@ -359,16 +370,16 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
                 else:
                     friction_I_inv_mass_derivatives.append(np.array([0., 0., 0.]))
                     friction_impulse_mass_derivatives.append(np.array([0., 0., 0.]))
-            relative_motion_friction_magn_mass_derivatives = []
+            '''relative_motion_friction_magn_mass_derivatives = []
             for j in np.arange(len(shapes)):
-                relative_motion_friction_magn_mass_derivatives.append(1. / relative_motion_friction_magn * np.dot(relative_motion_friction, friction_impulse_mass_derivatives[j]))
+                relative_motion_friction_magn_mass_derivatives.append(1. / relative_motion_friction_magn * np.dot(relative_motion_friction, friction_impulse_mass_derivatives[j]))'''
             mu_normal_friction_magn_mass_derivatives = []
             for j in np.arange(len(shapes)):
                 mu_normal_friction_magn_mass_derivatives.append(normal_impulse_magn_mass_derivatives[j] * mu)
             mu_normal_friction_magn_mu_derivative = normal_impulse_magn
-            rm = relative_motion_friction_magn < mu_normal_friction_magn
+            #rm = relative_motion_friction_magn < mu_normal_friction_magn
             friction_mass_derivatives = []
-            if rm:
+            '''if rm:
                 for j in np.arange(len(shapes)):
                     friction_mass_derivatives.append(relative_motion_friction_magn_mass_derivatives[j] * friction_direction)
                 friction_mu_derivative = 0 * friction_direction
@@ -376,7 +387,12 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
                 # includes chink where relative_motion_friction_magn is equal to mu_normal_friction_magn
                 for j in np.arange(len(shapes)):
                     friction_mass_derivatives.append(mu_normal_friction_magn_mass_derivatives[j] * friction_direction)
-                friction_mu_derivative = mu_normal_friction_magn_mu_derivative * friction_direction
+                friction_mu_derivative = mu_normal_friction_magn_mu_derivative * friction_direction'''
+            for j in np.arange(len(shapes)):
+                friction_mass_derivatives.append(mu_normal_friction_magn_mass_derivatives[j] * friction_direction)
+            friction_mu_derivative = mu_normal_friction_magn_mu_derivative * friction_direction
+
+            #print("friction", friction)
 
             if shape.parent is not None:
                 I_inv_combined_mass_derivatives = []
@@ -388,7 +404,7 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
                 shape_ground_apply_impulse_derivatives(shape, friction, r, I_inv, None, friction_mass_derivatives, one_shape_friction_I_inv_mass_derivatives, friction_mu_derivative)
 
 
-def external_force_impulse(combined, dt, find_derivatives):
+def external_force_impulse(combined, component_number, dt, find_derivatives):
     # add external force collision
     '''
     # get first vertex on the first collision shape with the smallest x coord
@@ -402,10 +418,10 @@ def external_force_impulse(combined, dt, find_derivatives):
     '''
     #get first vertex on the first collision shape
     # contact is at the center of mass along the y-axis (height)
-    external_force_contact_location = combined.components[0].vertices[0] * np.array([1., 0., 1.])
-    external_force_contact_location[1] = combined.components[0].location[1]
+    external_force_contact_location = combined.components[component_number].vertices[0] * np.array([1., 0., 1.])
+    external_force_contact_location[1] = combined.components[component_number].location[1]
     external_force_direction = np.array([1., 0., 0.])
-    external_force_impulse_magn = 1.5 * dt
+    external_force_impulse_magn = 150. * dt
     external_force_impulse = external_force_impulse_magn*external_force_direction
 
     r = external_force_contact_location - combined.location
@@ -421,4 +437,5 @@ def external_force_impulse(combined, dt, find_derivatives):
         for i in np.arange(len(combined.components)):
             I_inv_mass_derivatives.append(np.matmul(R, np.matmul(combined.I_inv_mass_derivatives[i], R.T)))
             external_force_impulse_mass_derivatives.append(np.array([0.,0.,0.]))
+        #print("external force", external_force_impulse)
         shape_ground_apply_impulse_derivatives(combined, external_force_impulse, r, I_inv, None, external_force_impulse_mass_derivatives, I_inv_mass_derivatives)

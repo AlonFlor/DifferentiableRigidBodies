@@ -402,8 +402,9 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
         shape, contact = ground_contacts_low_level[i]
         ground_contact_friction_coefficients.append(shape_ground_frictions[shape])
 
-    #apply external force
-    collision_handling_basic_impulse.external_force_impulse(combined, dt, find_derivatives)
+    #apply external forces
+    collision_handling_basic_impulse.external_force_impulse(combined, 0, dt, find_derivatives)
+    collision_handling_basic_impulse.external_force_impulse(combined, len(shapes)-1, dt, find_derivatives)
 
     #handle collisions
     #collision_handling_LCP.handle_collisions_LCP(combined, ground_contacts_low_level, dt)
@@ -471,6 +472,10 @@ def run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_
     deviations_from_script.append(combined.angular_velocity[0] - motion_script[next_time_step][11])
     deviations_from_script.append(combined.angular_velocity[1] - motion_script[next_time_step][12])
     deviations_from_script.append(combined.angular_velocity[2] - motion_script[next_time_step][13])
+
+    #print("\n\ndeviations_from_script", deviations_from_script)
+    #print("velocity mass derivatives", combined.velocity_mass_derivatives)
+    #print("velocity mu derivatives", combined.velocity_mu_derivatives)
 
     deviations_from_script_squared = []
     for deviation_from_script in deviations_from_script:
@@ -574,6 +579,7 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
 
 
     for value in values_to_count:
+        print("now on",value)
         # make shapes
         if doing_friction:
             shape_ground_frictions_in[shape_to_alter_index] = value
@@ -662,45 +668,217 @@ def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing
     draw_data.plot_3D_data(X, Y, Z_result, Z_x_derivative, Z_x_derivative_estimate, zero)
     draw_data.plot_3D_data(X, Y, Z_result, Z_y_derivative, Z_y_derivative_estimate, zero)
 
+def run_2D_loss_sweep(shape_to_alter_index1, shape_to_alter_index2, doing_friction, values_to_count_index1, values_to_count_index2, motion_script, time_step, shape_masses, shape_ground_frictions_in):
+    X, Y = np.meshgrid(values_to_count_index1, values_to_count_index2)
+    X=X.T
+    Y=Y.T
+
+    zero = X*0
+    Z_result = X*0
+    print("start")
+    for coord_x, value_x in enumerate(values_to_count_index1):
+        for coord_y, value_y in enumerate(values_to_count_index2):
+            # make shapes
+            if doing_friction:
+                shape_ground_frictions_in[shape_to_alter_index1] = value_x
+                shape_ground_frictions_in[shape_to_alter_index2] = value_y
+            else:
+                shape_masses[shape_to_alter_index1] = value_x
+                shape_masses[shape_to_alter_index2] = value_y
+            shapes, shape_shape_frictions, shape_ground_frictions = \
+                set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, shape_masses, shape_ground_frictions_in)
+            #shapes, shape_shape_frictions, shape_ground_frictions = \
+            #    set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation,
+            #                            np.concatenate((np.repeat(shape_masses[shape_to_alter_index1], 32), np.repeat(shape_masses[shape_to_alter_index2], 56))),
+            #                            np.concatenate((np.repeat(shape_ground_frictions_in[shape_to_alter_index1], 32), np.repeat(shape_ground_frictions_in[shape_to_alter_index2], 56))))
+
+            combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
+            print(coord_x, coord_y)
+            print(Z_result.shape)
+            Z_result[coord_x, coord_y], mass_derivatives, mu_derivatives = \
+                run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
+
+            #to help with log
+            if Z_result[coord_x, coord_y]==0.:
+                Z_result[coord_x, coord_y] = 1.e-16
+
+            #loss_sweep_file.write(str(value_x)+","+str(value_y)+","+str(np.log10(Z_result[coord_x, coord_y]))+"\n")
+
+        print("coord_x:",coord_x)
+
+    # draw plot
+    draw_data.plot_3D_loss_func(X.T, Y.T, np.log10(Z_result.T))
+
 def find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes_len):
 
     def func(x):
         # make shapes
-        shapes, shape_shape_frictions, shape_ground_frictions = set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, x[:shapes_len], x[shapes_len:])
+        #shapes, shape_shape_frictions, shape_ground_frictions = set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, 19.5*x[:shapes_len]+0.5, x[shapes_len:]/2.)
+
+        #hammer with only head and handle
+        shapes, shape_shape_frictions, shape_ground_frictions = set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation,
+                                                                                        np.concatenate((np.repeat(376./32.*(.8*x[0]+.1),32), np.repeat(376./56.*(1.-(.8*x[0]+.1)),56))),
+                                                                                        np.concatenate((np.repeat(x[2]/2.,32), np.repeat(x[3]/2.,56))))
         combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
 
         result, mass_derivatives, mu_derivatives = \
             run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
-        #do for another 49 time steps
-        for i in range(1,50):
+        '''#do for another 24 time steps
+        for i in range(1,25):
             d_result, d_mass_derivatives, d_mu_derivatives = \
                 run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step+i)
             result += d_result
             for j in range(shapes_len):
                 mass_derivatives[j] += d_mass_derivatives[j]
                 mu_derivatives[j] += d_mu_derivatives[j]
-        derivatives = np.array([mass_derivatives, mu_derivatives]).flatten()
-        global mult_factor
-        if mult_factor is None:
-            size = np.linalg.norm(derivatives)
-            mult_factor = float(shapes_len) / size
-            print("\n\nmult_factor*derivatives\n",mult_factor*derivatives,"\n\n")
-        return mult_factor*result, mult_factor*derivatives
+        if friction_only:
+            for i in range(shapes_len):
+                mass_derivatives[i] = 0.
+        if mass_only:
+            for i in range(shapes_len):
+                mu_derivatives[i] = 0.'''
+
+        #hammer with only head and handle
+        mass_derivatives_head = np.average(mass_derivatives[:32])
+        mass_derivatives_handle = np.average(mass_derivatives[32:])
+        mu_derivatives_head = np.average(mu_derivatives[:32])
+        mu_derivatives_handle = np.average(mu_derivatives[32:])
+        derivatives = np.array([376./32.*.8*mass_derivatives_head - 376./56.*.8*mass_derivatives_handle, 0., mu_derivatives_head/2., mu_derivatives_handle/2.]).flatten()
+
+        #derivatives = np.concatenate((19.5*np.array([mass_derivatives]), np.array([mu_derivatives])/2.)).flatten()
+
+        print("before ln: result:",result,"\t\tderivatives:",derivatives)
+        derivatives = derivatives / result
+        result = np.log(result)
+
+        print("ln(loss):",result)
+        print("normalized masses:",x[0],1.-x[0],"\t\tnormalized mass derivatives:",derivatives[0],derivatives[1])
+        print("normalized mu vals:",x[2],x[3],"\t\tnormalized mu derivatives:",derivatives[2],derivatives[3])
+        print("masses:",((.8*x[0]+.1) * 376. / 32.),((1. - (.8*x[0]+.1)) * 376. / 56.))
+        print("mu vals:",x[2] / 2., x[3] / 2.)
+        print("normalized mass*friction:", x[0] * x[2], "\t\t", (1. - x[0]) * x[3])
+        print("mass*friction:", ((.8*x[0]+.1) * 376. / 32.) * x[2] / 2., "\t\t", ((1. - (.8*x[0]+.1)) * 376. / 56.) * x[3] / 2.)
+        print("mass sum",combined.mass)
+        print("mass*friction/(mass sum)",((.8*x[0]+.1)*376./32.)*x[2]/2./combined.mass, ((1.-(.8*x[0]+.1))*376./56.)*x[3]/2/combined.mass)
+        print()
+        #return mult_factor*result, mult_factor*derivatives
+        return result, derivatives
 
     global mult_factor
-    doing_friction=False
-    mult_factor = None
-    result = scipy.optimize.minimize(func, x0 = initial_guess, method='L-BFGS-B', jac=True, bounds=bounds)
-    print("\t\t\t\t\t\t\t\t\t\t\t\t",mult_factor)
-    if result.fun > 1.e-6:
-        mult_factor = None
-        result = scipy.optimize.minimize(func, x0=result.x, method='L-BFGS-B', jac=True, bounds=bounds)
-        print("\t\t\t\t\t\t\t\t\t\t\t\t",mult_factor)
+    friction_only=False
+    mass_only=False
+    result = scipy.optimize.minimize(func, x0 = initial_guess, method='L-BFGS-B', jac=True, bounds=bounds)#, options={'ftol':-30.})
 
     print("result.status", result.status, "result.success", result.success, "number of iterations", result.nit)
-    print("loss function final value:", result.fun, "\t\t\tloss function final value divided by number of components:", result.fun/shapes_len)
-    print("loss function derivatives:\n",result.jac)
+    print("log(loss) function final value:", result.fun)
+    print("log(loss) function derivatives:\n",result.jac)
+    print("final result:\n")
+    print(str(result.fun) + "," + str(result.x[0]) + "," + str(1.-result.x[0]) + "," + str(result.x[2]) + "," + str(result.x[3]) + ",," + str(result.jac[0]) + "," + str(result.jac[1]) + "," + str(result.jac[2]) + "," + str(result.jac[3]) + "\n")
     return result.x
+
+'''def find_values(motion_script, time_step, initial_guess, bounds, shapes_len):
+
+    def func(x):
+        # make shapes
+        #shapes, shape_shape_frictions, shape_ground_frictions = set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, x[:shapes_len], x[shapes_len:])
+
+        #hammer with only head and handle
+        shapes, shape_shape_frictions, shape_ground_frictions = set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation,
+                                                                                        np.concatenate((np.repeat(376./32.*x[0],32), np.repeat(376./56.*(1.-x[0]),56))),
+                                                                                        np.concatenate((np.repeat(x[2]/2.,32), np.repeat(x[3]/2.,56))))
+        combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
+
+        result, mass_derivatives, mu_derivatives = \
+            run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
+        ##do for another 24 time steps
+        #for i in range(1,25):
+        #    d_result, d_mass_derivatives, d_mu_derivatives = \
+        #        run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step+i)
+        #    result += d_result
+        #    for j in range(shapes_len):
+        #        mass_derivatives[j] += d_mass_derivatives[j]
+        #        mu_derivatives[j] += d_mu_derivatives[j]
+        #if friction_only:
+        #    for i in range(shapes_len):
+        #        mass_derivatives[i] = 0.
+
+        #hammer with only head and handle
+        mass_derivatives_head = np.average(mass_derivatives[:32])
+        #mass_derivatives_handle = np.average(mass_derivatives[32:])
+        mu_derivatives_head = np.average(mu_derivatives[:32])
+        mu_derivatives_handle = np.average(mu_derivatives[32:])
+        derivatives = np.array([376./32.*mass_derivatives_head, 0., mu_derivatives_head/2., mu_derivatives_handle/2.]).flatten()
+
+        #derivatives = np.array([mass_derivatives, mu_derivatives]).flatten()
+
+        print("before ln: result:",result,"\t\tderivatives:",derivatives)
+        derivatives = derivatives / result
+        result = np.log(result)
+
+        print("ln(loss):", result)
+        print("normalized masses:",x[0],1.-x[0],"\t\tnormalized mass derivatives:",derivatives[0],derivatives[1])
+        print("normalized mu vals:",x[2],x[3],"\t\tnormalized mu derivatives:",derivatives[2],derivatives[3])
+        print("normalized mass*friction:",x[0]*x[2],"\t\t",(1.-x[0])*x[3])
+        print("mass*friction:",(x[0]*376./32.)*x[2]/2.,"\t\t",((1.-x[0])*376./56.)*x[3]/2.)
+        print("mass sum",combined.mass)
+        print("mass*friction/(mass sum)",(x[0]*376./32.)*x[2]/2./combined.mass, ((1.-x[0])*376./56.)*x[3]/2/combined.mass)
+        print()
+        return result, derivatives
+
+    friction_only=False
+    iteration = 0
+    loss = 0.
+    tolerance = -30
+    start=True
+    #mass_derivatives_mult_factor = 1.
+    #mu_derivatives_mult_factor = 1.
+    general_mult_factor = 0.3
+    x = initial_guess
+    while loss>tolerance or start:
+        print("iteration:",iteration)
+        loss, derivatives = func(x)
+        #mass_derivatives = derivatives[:shapes_len]
+        #mu_derivatives = derivatives[shapes_len:]
+        mass_derivatives = derivatives[:2]          #due to hammer with head and handle
+        mu_derivatives = derivatives[2:]          #due to hammer with head and handle
+        if start:
+            start = False
+            #mass_derivatives_mult_factor = 1. / np.linalg.norm(mass_derivatives)
+            #mu_derivatives_mult_factor = 1. / np.linalg.norm(mu_derivatives)
+            #print("mass_derivatives_mult_factor",mass_derivatives_mult_factor)
+            #print("mu_derivatives_mult_factor",mu_derivatives_mult_factor)
+        #for i in np.arange(shapes_len):
+        for i in np.arange(2):          #due to hammer with head and handle
+            step_mass = (bounds[i][1]-bounds[i][0]) * general_mult_factor * np.power(0.999,iteration) * 10*np.sign(mass_derivatives[i])#mass_derivatives_mult_factor*mass_derivatives[i]
+            #step_mu = (bounds[i+shapes_len][1]-bounds[i+shapes_len][0]) * 0.1 * np.power(0.999,iteration) * np.sign(mu_derivatives[i]#mu_derivatives_mult_factor*mu_derivatives[i]
+            step_mu = (bounds[i+2][1]-bounds[i+2][0]) * general_mult_factor * np.power(0.999,iteration) * np.sign(mu_derivatives[i])#mu_derivatives_mult_factor*mu_derivatives[i] #due to hammer with head and handle
+
+            x[i] -= step_mass
+            # x[i+shapes_len] -= step_mu
+            x[i + 2] -= step_mu #due to hammer with head and handle
+            #print("\tscaled mass derivative",mass_derivatives_mult_factor*mass_derivatives[i])
+            print("\tstep mass",-step_mass)
+            #print("\tscaled mu derivative",mu_derivatives_mult_factor*mu_derivatives[i])
+            print("\tstep mu",-step_mu)
+            print()
+
+            #clamp within bounds
+            if x[i] > bounds[i][1]:
+                x[i] = bounds[i][1]
+            elif x[i] < bounds[i][0]:
+                x[i] = bounds[i][0]
+            #if x[i+shapes_len] > bounds[i+shapes_len][1]:
+            #    x[i+shapes_len] = bounds[i+shapes_len][1]
+            #elif x[i+shapes_len] < bounds[i+shapes_len][0]:
+            #    x[i+shapes_len] = bounds[i+shapes_len][0]
+            if x[i+2] > bounds[i+2][1]:                         #due to hammer with head and handle
+                x[i+2] = bounds[i+2][1]
+            elif x[i+2] < bounds[i+2][0]:
+                x[i+2] = bounds[i+2][0]
+        iteration += 1
+        print()
+    return x'''
+
 
 def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
     # make shapes
@@ -718,47 +896,103 @@ def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
 
 #load shape info
 print()
-combined_info = file_handling.read_combined_boxes_rigid_body_file("try1.txt")
-#combined_info = file_handling.read_combined_boxes_rigid_body_file("hammer.txt")
+#combined_info = file_handling.read_combined_boxes_rigid_body_file("try1.txt")
+combined_info = file_handling.read_combined_boxes_rigid_body_file("hammer.txt")
 rotation = geometry_utils.normalize(np.array([0., 0.3, 0., 0.95]))
 
 # set dt
 dt = 0.001
 
 
-masses = np.linspace(0.5, 5., 1000)
-mu_values = np.linspace(0, 0.5, 1000)
+masses = np.linspace(1.5, 15., 50)
+mu_values = np.linspace(0, 0.5, 50)
 
 actual_mass_values = 1.*np.ones((len(combined_info)))
 actual_mu_values = 0.3*np.ones((len(combined_info)))
 
-#for 2-component shape:
-actual_mass_values[0]=10.
-##for hammer
-#for i in np.arange(32):
-#    actual_mass_values[i] = 10.
+##for 2-component shape:
+#actual_mass_values[0]=10.
+#for hammer
+for i in np.arange(32):
+    actual_mass_values[i] = 10.
+
+#temp_mass_values = np.array([8.89699020224429, 14.9677209483574, 11.9923671466221, 7.15753688286746, 18.6387991789189, 3.48994516222535, 13.934303223965, 15.3254389078696, 5.87919201799735, 10.7787085222541, 12.7353274888345, 0.500483124956181, 9.96223770306502, 5.55420940004804, 5.76141497266729, 16.9575706700041, 15.4823478402692, 7.63684248836076, 7.56902605730114, 7.10143596403488, 9.80835991517899, 14.5938120473543, 7.51381919739439, 8.86454628705836, 15.5295813274777, 9.25839029269623, 0.54473080559343, 10.3495727088272, 9.79056314692446, 14.5566575477758, 8.7660572317503, 10.4181392812605, 12.813989526761, 6.47819701417439, 14.8021115286055, 7.74974085480524, 10.4387952461088, 12.3411597317592, 2.77220580044348, 15.0405411069867, 9.40156487414608, 7.64986923434638, 10.3101963220124, 13.2198344064352, 12.7439747096532, 13.6959556807137, 10.7200044914251, 3.50859391191897, 0.534520432064302, 12.7064582278817, 5.75745241135366, 8.45991547042282, 13.5642804514493, 6.94303371516847, 12.3634258089449, 2.22178204092344, 15.4290639163791,13.206444476902, 6.02631215478425, 10.8164080207691, 9.64131373952631, 0.552389968232394, 11.1076603001077, 6.41777469483705, 3.45824176354364, 0.567163256661271, 0.61778533988159, 5.26563277664322, 0.635826327450377, 0.749437027969597, 1.95088107753876, 0.500887223769284, 9.80297259603917, 10.356306738809, 0.615288038609257, 4.03877983721301, 13.1409802389594, 4.76855316353137, 12.2801243661453, 3.49729742681063, 10.5234018319807, 6.08589767062348, 6.15456963724876, 5.87947502173238, 0.633784241774706, 3.58591415182925, 12.7112126505709, 12.5305682137767])
+#temp_friction_values = np.array([0.490472484091987, 0.46464007379533, 0.494486166837544, 0.488372376629397, 0.5, 0.49619382964266, 0.5, 0.490033197486532, 0.5, 0.495250930621612, 0.5, 0.485980444657035, 0.5, 0.494708652323586, 0.5, 0.48021700721466, 0.499538183322252, 0.491485576301457, 0.482610281230558, 0.487219102783097, 0.480912083380977, 0.466603695009185, 0.479814119608786, 0.471431326077002, 0.428281181847927, 0.449073698634622, 0.486480704447129, 0.0889062233423233, 0.470960689896326, 0.454310808052593, 0.469455102863066, 0.459462156338643, 0.445918172177983, 0.468097360373353, 0.422817131513697, 0.451983205457894, 0.433264635798613, 0.415335121328377, 0.479821706706827, 0.37928026877987, 0.423694321912463, 0.432548699451157, 0.411577097616278, 4.62849618901452E-05, 6.70635159169809E-05, 0.300117259465548, 0.323540480504563, 1.20481156084096E-05, 0.478952591959196, 1.7368248522866E-07, 5.29927984902358E-06, 6.41611190812451E-06, 3.85458636473809E-09, 7.3844723634914E-11, 2.32731586358741E-09, 1.65266192699108E-10, 0, 1.85365352729149E-06, 1.19508028597982E-06, 2.31216577732923E-06, 2.55359015425141E-06, 0, 0.000304859622388863, 0.000514156225708061, 0.000531468020041119, 0.0004193884378199, 0.00153133360111239, 0.00407712096563078, 0.0126935667734519, 0.000408890529404927, 0.00264140272397925, 0.00196745413461401, 0.0136504866525122, 0.0275576053686505, 0.000163503079092655, 0.0140496430571793, 0.0341380022245148, 0.0196357360455469, 0.0405068554688794, 0.0177223670111217, 0.0421099143733206, 0.0327269464467263, 0.0283679124804435, 0.0361797904756555, 0.00543332361040104, 0.0248391633462249, 0.0742208254615656, 0.0914493854054951])
+#temp_mass_values = np.array([5.78391658015135, 4.7033595147844])
+#temp_friction_values = np.array([0.5, 0.0555705990135459])
+#temp_mass_values = np.concatenate((np.array([19.567496204797063]*32), np.array([7.092799154660835]*56)))
+#temp_friction_values = np.concatenate((np.array([0.4381875344390944]*32), np.array([0.20276262173721]*56)))
+#temp_mass_values = np.concatenate((np.array([7.4642306248406225]*32), np.array([3.535769377155203]*56)))
+#temp_friction_values = np.concatenate((np.array([0.40191684167894487]*32), np.array([0.08484716205309362]*56)))
+#temp_mass_values = np.concatenate((np.array([6.5]*32), np.array([3.]*56)))
+#temp_friction_values = np.concatenate((np.array([3./6.5]*32), np.array([0.1]*56)))
+temp_mass_values = np.concatenate((np.array([8.]*32), np.array([2.]*56)))
 
 time_step = 100
-motion_script = file_handling.read_motion_script_file(os.path.join("test1","motion_script.csv"))
+motion_script = file_handling.read_motion_script_file(os.path.join("test2","motion_script.csv"))
 
 #ordinary_run(actual_mass_values, actual_mu_values)
 #ordinary_run(actual_mass_values, actual_mu_values, motion_script=motion_script)
+#run_derivatives_sweep(1, False, masses, motion_script, time_step, temp_mass_values, temp_friction_values)
 #run_derivatives_sweep(1, False, masses, motion_script, time_step, actual_mass_values, actual_mu_values)
 #run_derivatives_sweep(0, True, mu_values, motion_script, time_step, actual_mass_values, actual_mu_values)
+#run_2D_derivatives_sweep(0, 1, False, masses, motion_script, time_step, actual_mass_values, actual_mu_values)
 #run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step, actual_mass_values, actual_mu_values)
 
+#run_2D_derivatives_sweep(11, 12, False, masses, motion_script, time_step, temp_mass_values, temp_friction_values)
+#run_2D_derivatives_sweep(0, 1, False, masses, motion_script, time_step, temp_mass_values, temp_friction_values)
+#run_2D_derivatives_sweep(0, 1, True, mu_values, motion_script, time_step, temp_mass_values, temp_friction_values)
+
+'''loss_sweep_file = open("loss_sweep_file.csv", "w", encoding="utf-8")
+loss_sweep_file.write("mass0,mass1,log(loss)\n")
+run_2D_loss_sweep(0, 1, False, np.linspace(0.5, 11.5, 99), np.linspace(0.5, 11.5, 99), motion_script, time_step, np.array([actual_mass_values[0], actual_mass_values[1]]), np.array([temp_friction_values[0],temp_friction_values[60]]))
+loss_sweep_file.close()'''
+
+'''shapes, shape_shape_frictions, shape_ground_frictions = \
+    set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation,
+                            np.concatenate((np.repeat(3./temp_friction_values[0], 32), np.repeat(0.3/temp_friction_values[60], 56))),
+                            np.concatenate((np.repeat(temp_friction_values[0], 32), np.repeat(temp_friction_values[60], 56))))'''
+'''shapes, shape_shape_frictions, shape_ground_frictions = \
+                set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, np.array([actual_mass_values[0], actual_mass_values[1]]), np.array([actual_mu_values[0],actual_mu_values[1]]))
+combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
+Z_result, mass_derivatives, mu_derivatives = \
+    run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
+print(Z_result)
+print(mass_derivatives)
+print(mu_derivatives)
+for i in range(len(shapes)):
+    print(i, combined.components[i].mass*shape_ground_frictions[combined.components[i]])'''
+
 shapes_len = len(combined_info)
-initial_guess = np.concatenate((15*np.random.random(len(combined_info))+0.5, (np.random.random(len(combined_info)))*0.45))
-#initial_guess = np.concatenate((15*np.random.random(len(combined_info))+0.5, actual_mu_values))
+#initial_guess = np.concatenate((15*np.random.random(2)+0.5, (np.random.random(2))*0.45)) #for hammer, split into handle and head
+initial_guess = np.concatenate((np.random.random(2), (np.random.random(2)))) #for hammer, split into handle and head, normalized
+#initial_guess = np.concatenate((np.array([temp_mass_values[0],temp_mass_values[60]]), (np.random.random(2))*0.45)) #for hammer, split into handle and head
+#initial_guess = np.concatenate((np.array([(temp_mass_values[0]-0.5)/19.5,(temp_mass_values[60]-0.5)/19.5]), (np.random.random(2))*0.45*2.)) #for hammer, split into handle and head, normalized
+#initial_guess = np.concatenate((15*np.random.random(2)+0.5, np.array([temp_friction_values[0],temp_friction_values[60]]))) #for hammer, split into handle and head
+#initial_guess = np.concatenate((np.array([(temp_mass_values[0]-0.5)/19.5,(temp_mass_values[60]-0.5)/19.5]), np.array([temp_friction_values[0]*2.,temp_friction_values[60]*2.]))) #for hammer, split into handle and head, normalized
+#initial_guess = np.concatenate((np.array([actual_mass_values[0],actual_mass_values[60]]), np.array([actual_mu_values[0],actual_mu_values[60]]))) #for hammer, split into handle and head
+#initial_guess = np.concatenate((np.array([(actual_mass_values[0]-0.5)/19.5,(actual_mass_values[60]-0.5)/19.5]), np.array([actual_mu_values[0]*2.,actual_mu_values[60]*2.]))) #for hammer, split into handle and head, normalized
+#initial_guess = np.concatenate((15*np.random.random(2)+0.5, np.array([actual_mu_values[0],actual_mu_values[1]]))) #for hammer, split into handle and head
+
+#initial_guess = np.concatenate((15*np.random.random(len(combined_info))+0.5, (np.random.random(len(combined_info)))*0.45))
+#initial_guess = np.concatenate((15*np.random.random(len(combined_info))/19.5, (np.random.random(len(combined_info)))*0.45*2)) #normalized
+#initial_guess = np.array([8.,3.,.375,.1])
+#initial_guess = np.concatenate((15*np.random.random(len(combined_info))+0.5, 0.5*np.ones((len(combined_info)))))
 #initial_guess = np.concatenate((actual_mass_values, (np.random.random(len(combined_info)))*0.45))
+#initial_guess = np.concatenate((actual_mass_values, actual_mu_values))
 #ordinary_run(initial_guess[:shapes_len], initial_guess[shapes_len:])
-bounds = [(0.5, 20.)]*len(combined_info) + [(0., 0.5)]*len(combined_info)
+#ordinary_run(np.concatenate((np.repeat(initial_guess[0], 32), np.repeat(initial_guess[1],56))), np.concatenate((np.repeat(initial_guess[2],32), np.repeat(initial_guess[3],56)))) #for hammer, split into handle and head
+#bounds = [(0.5, 20.)]*len(combined_info) + [(0., 0.5)]*len(combined_info)
+#bounds = [(0., 1.)]*len(combined_info) + [(0., 1.)]*len(combined_info) #normalized
+#bounds = [(0.5, 20.)]*2 + [(0., 0.5)]*2 #for hammer, split into handle and head
+bounds = [(0., 1.)]*2 + [(0., 1.)]*2 #for hammer, split into handle and head, normalized
 print(initial_guess)
 #print(initial_guess[0]*initial_guess[2],initial_guess[1]*initial_guess[3])
 mult_factor = None
 vals = find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes_len)
-ughudhrtuhg = input("Go?")
-ordinary_run(vals[:shapes_len], vals[shapes_len:])
+#ughudhrtuhg = input("Go?")
+#ordinary_run(vals[:shapes_len], vals[shapes_len:])
+#ordinary_run(np.concatenate((np.repeat(vals[0], 32), np.repeat(vals[1],56))), np.concatenate((np.repeat(vals[2],32), np.repeat(vals[3],56)))) #for hammer, split into handle and head
 print(vals)
 #print(vals[0]*vals[2],vals[1]*vals[3])
 
