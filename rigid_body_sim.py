@@ -929,7 +929,7 @@ for i in np.arange(32):
 temp_mass_values = np.concatenate((np.array([8.]*32), np.array([2.]*56)))
 
 time_step = 100
-motion_script = file_handling.read_motion_script_file(os.path.join("test2","motion_script.csv"))
+motion_script = file_handling.read_motion_script_file(os.path.join("test5","motion_script.csv"))
 
 #ordinary_run(actual_mass_values, actual_mu_values)
 #ordinary_run(actual_mass_values, actual_mu_values, motion_script=motion_script)
@@ -948,20 +948,6 @@ loss_sweep_file.write("mass0,mass1,log(loss)\n")
 run_2D_loss_sweep(0, 1, False, np.linspace(0.5, 11.5, 99), np.linspace(0.5, 11.5, 99), motion_script, time_step, np.array([actual_mass_values[0], actual_mass_values[1]]), np.array([temp_friction_values[0],temp_friction_values[60]]))
 loss_sweep_file.close()'''
 
-'''shapes, shape_shape_frictions, shape_ground_frictions = \
-    set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation,
-                            np.concatenate((np.repeat(3./temp_friction_values[0], 32), np.repeat(0.3/temp_friction_values[60], 56))),
-                            np.concatenate((np.repeat(temp_friction_values[0], 32), np.repeat(temp_friction_values[60], 56))))'''
-'''shapes, shape_shape_frictions, shape_ground_frictions = \
-                set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, np.array([actual_mass_values[0], actual_mass_values[1]]), np.array([actual_mu_values[0],actual_mu_values[1]]))
-combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
-Z_result, mass_derivatives, mu_derivatives = \
-    run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
-print(Z_result)
-print(mass_derivatives)
-print(mu_derivatives)
-for i in range(len(shapes)):
-    print(i, combined.components[i].mass*shape_ground_frictions[combined.components[i]])'''
 
 shapes_len = len(combined_info)
 #initial_guess = np.concatenate((15*np.random.random(2)+0.5, (np.random.random(2))*0.45)) #for hammer, split into handle and head
@@ -981,7 +967,7 @@ initial_guess = np.concatenate((np.random.random(2), (np.random.random(2)))) #fo
 #initial_guess = np.concatenate((actual_mass_values, (np.random.random(len(combined_info)))*0.45))
 #initial_guess = np.concatenate((actual_mass_values, actual_mu_values))
 #ordinary_run(initial_guess[:shapes_len], initial_guess[shapes_len:])
-#ordinary_run(np.concatenate((np.repeat(initial_guess[0], 32), np.repeat(initial_guess[1],56))), np.concatenate((np.repeat(initial_guess[2],32), np.repeat(initial_guess[3],56)))) #for hammer, split into handle and head
+#ordinary_run(np.concatenate((np.repeat(376./32.*(.8*initial_guess[0]+.1), 32), np.repeat(376./56.*(1.-(.8*initial_guess[0]+.1)),56))), np.concatenate((np.repeat(initial_guess[2],32), np.repeat(initial_guess[3],56)))) #for hammer, split into handle and head
 #bounds = [(0.5, 20.)]*len(combined_info) + [(0., 0.5)]*len(combined_info)
 #bounds = [(0., 1.)]*len(combined_info) + [(0., 1.)]*len(combined_info) #normalized
 #bounds = [(0.5, 20.)]*2 + [(0., 0.5)]*2 #for hammer, split into handle and head
@@ -992,7 +978,7 @@ mult_factor = None
 vals = find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes_len)
 #ughudhrtuhg = input("Go?")
 #ordinary_run(vals[:shapes_len], vals[shapes_len:])
-#ordinary_run(np.concatenate((np.repeat(vals[0], 32), np.repeat(vals[1],56))), np.concatenate((np.repeat(vals[2],32), np.repeat(vals[3],56)))) #for hammer, split into handle and head
+#ordinary_run(np.concatenate((np.repeat(376./32.*(.8*vals[0]+.1), 32), np.repeat(376./56.*(1.-(.8*vals[0]+.1)),56))), np.concatenate((np.repeat(vals[2]/2.,32), np.repeat(vals[3]/2.,56)))) #for hammer, split into handle and head
 print(vals)
 #print(vals[0]*vals[2],vals[1]*vals[3])
 

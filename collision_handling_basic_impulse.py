@@ -344,9 +344,9 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
 
         friction_direction = tangential_velocity / tangential_velocity_magn
         relative_motion_friction, r, I_inv, R, impulse_denom, impulse_num = shape_ground_collision_impulse(shape, (world_point, friction_direction), tangential_velocity_magn, restitution)
-        #relative_motion_friction_magn = np.linalg.norm(relative_motion_friction)
+        relative_motion_friction_magn = np.linalg.norm(relative_motion_friction)
         mu_normal_friction_magn = mu * normal_impulse_magn
-        friction = friction_direction * mu_normal_friction_magn#min(relative_motion_friction_magn, mu_normal_friction_magn)
+        friction = friction_direction * min(relative_motion_friction_magn, mu_normal_friction_magn)
         if shape.parent is not None:
             r_combined = world_point - shape.parent.location
             R_combined = geometry_utils.quaternion_to_rotation_matrix(shape.parent.orientation)
@@ -370,16 +370,16 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
                 else:
                     friction_I_inv_mass_derivatives.append(np.array([0., 0., 0.]))
                     friction_impulse_mass_derivatives.append(np.array([0., 0., 0.]))
-            '''relative_motion_friction_magn_mass_derivatives = []
+            relative_motion_friction_magn_mass_derivatives = []
             for j in np.arange(len(shapes)):
-                relative_motion_friction_magn_mass_derivatives.append(1. / relative_motion_friction_magn * np.dot(relative_motion_friction, friction_impulse_mass_derivatives[j]))'''
+                relative_motion_friction_magn_mass_derivatives.append(1. / relative_motion_friction_magn * np.dot(relative_motion_friction, friction_impulse_mass_derivatives[j]))
             mu_normal_friction_magn_mass_derivatives = []
             for j in np.arange(len(shapes)):
                 mu_normal_friction_magn_mass_derivatives.append(normal_impulse_magn_mass_derivatives[j] * mu)
             mu_normal_friction_magn_mu_derivative = normal_impulse_magn
-            #rm = relative_motion_friction_magn < mu_normal_friction_magn
+            rm = relative_motion_friction_magn < mu_normal_friction_magn
             friction_mass_derivatives = []
-            '''if rm:
+            if rm:
                 for j in np.arange(len(shapes)):
                     friction_mass_derivatives.append(relative_motion_friction_magn_mass_derivatives[j] * friction_direction)
                 friction_mu_derivative = 0 * friction_direction
@@ -387,10 +387,7 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
                 # includes chink where relative_motion_friction_magn is equal to mu_normal_friction_magn
                 for j in np.arange(len(shapes)):
                     friction_mass_derivatives.append(mu_normal_friction_magn_mass_derivatives[j] * friction_direction)
-                friction_mu_derivative = mu_normal_friction_magn_mu_derivative * friction_direction'''
-            for j in np.arange(len(shapes)):
-                friction_mass_derivatives.append(mu_normal_friction_magn_mass_derivatives[j] * friction_direction)
-            friction_mu_derivative = mu_normal_friction_magn_mu_derivative * friction_direction
+                friction_mu_derivative = mu_normal_friction_magn_mu_derivative * friction_direction
 
             #print("friction", friction)
 
