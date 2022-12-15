@@ -89,7 +89,7 @@ def shape_ground_collision_impulse(shape, contact, dv, restitution):
     world_vertex, normal = contact
     
     #p = geometry_utils.to_local_coords(shape, world_vertex)
-    r = world_vertex - shape.location
+    r = world_vertex - geometry_utils.to_world_coords(shape, shape.COM)
 
     R = geometry_utils.quaternion_to_rotation_matrix(shape.orientation)
     I_inv = np.matmul(R,np.matmul(shape.I_inv,R.T))
@@ -117,6 +117,11 @@ def shape_ground_collision_impulse_derivatives(shape, contact, r, R, I_inv, impu
         I_inv_mass_derivatives.append(rotated_I_inv_mass_derivative)
 
         rotational_part_mass_derivatives.append(np.dot(normal, np.cross(np.matmul(rotated_I_inv_mass_derivative, r_cross_normal), r)))
+    #if shape.COM_mass_derivatives is not None:
+    #    I_inv = np.matmul(R, np.matmul(shape.I_inv, R.T))
+    #    for COM_mass_derivative in shape.COM_mass_derivatives:
+    #        rotational_part_mass_derivatives.append(np.dot(normal, np.cross(np.matmul(I_inv, r_cross_normal), -COM_mass_derivative)))
+    #        rotational_part_mass_derivatives.append(np.dot(normal, np.cross(np.matmul(I_inv, np.cross(-COM_mass_derivative, normal)), r)))
 
     mass_inv_sq = -1./(shape.mass*shape.mass)
     impulse_denom_mass_derivatives = []
@@ -400,7 +405,6 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
             else:
                 shape_ground_apply_impulse_derivatives(shape, friction, r, I_inv, None, friction_mass_derivatives, one_shape_friction_I_inv_mass_derivatives, friction_mu_derivative)
 
-
 def external_force_impulse(combined, component_number, dt, find_derivatives):
     # add external force collision
     '''
@@ -418,10 +422,10 @@ def external_force_impulse(combined, component_number, dt, find_derivatives):
     external_force_contact_location = combined.components[component_number].vertices[0] * np.array([1., 0., 1.])
     external_force_contact_location[1] = combined.components[component_number].location[1]
     external_force_direction = np.array([1., 0., 0.])
-    external_force_impulse_magn = 150. * dt
+    external_force_impulse_magn = 1500. * dt
     external_force_impulse = external_force_impulse_magn*external_force_direction
 
-    r = external_force_contact_location - combined.location
+    r = external_force_contact_location - geometry_utils.to_world_coords(combined, combined.COM)
     R = geometry_utils.quaternion_to_rotation_matrix(combined.orientation)
     I_inv = np.matmul(R, np.matmul(combined.I_inv, R.T))
 

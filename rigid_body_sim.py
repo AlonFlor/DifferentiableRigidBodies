@@ -137,14 +137,14 @@ class combined_body:
 
         #add mass and center of mass information
         self.mass= 0.
-        world_COM = np.array([0., 0., 0.])
+        world_COM_times_mass = np.array([0., 0., 0.])
         self.location = np.array([0., 0., 0.])
         for shape in self.components:
             self.location += shape.location
             self.mass += shape.mass
-            world_COM += shape.mass*geometry_utils.to_world_coords(shape, shape.COM)
+            world_COM_times_mass += shape.mass*geometry_utils.to_world_coords(shape, shape.COM)
         self.location /= len(self.components)   #location is non-weighted average of component locations
-        self.COM = world_COM / self.mass - self.location
+        self.COM = world_COM_times_mass / self.mass - self.location
 
         #component rotations from this shape to child shape
         #component translations from this shape to child shape
@@ -152,7 +152,7 @@ class combined_body:
         self.component_translations = []
         for shape in self.components:
             self.component_rotations.append(shape.orientation + 0.)
-            self.component_translations.append(shape.location - self.location)
+            self.component_translations.append(shape.location - self.COM)
 
         #get moment of inertia and its inverse
         self.I = np.zeros((3,3))
@@ -166,11 +166,11 @@ class combined_body:
 
         #get mass derivatives of combined body's center of mass
         self.COM_mass_derivatives = []
-        second_term = world_COM / (self.mass * self.mass)
+        second_term = world_COM_times_mass / (self.mass * self.mass)
         for index in np.arange(len(self.components)):
             shape = self.components[index]
             self.COM_mass_derivatives.append(geometry_utils.to_world_coords(shape, shape.COM) / self.mass - second_term)
-            #d_COM/d_mass = (d_world_COM/d_mass) / self.mass - world_COM / (self.mass * self.mass)
+            #d_COM/d_mass = (d_world_COM_times_mass/d_mass) / self.mass - world_COM_times_mass / (self.mass * self.mass)
         #get mass derivatives of moment of inertia and its inverse, and of its location
         self.I_mass_derivatives = []
         for index in np.arange(len(self.components)):
@@ -404,7 +404,7 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
 
     #apply external forces
     collision_handling_basic_impulse.external_force_impulse(combined, 0, dt, find_derivatives)
-    collision_handling_basic_impulse.external_force_impulse(combined, len(shapes)-1, dt, find_derivatives)
+    #collision_handling_basic_impulse.external_force_impulse(combined, len(shapes)-1, dt, find_derivatives)
 
     #handle collisions
     #collision_handling_LCP.handle_collisions_LCP(combined, ground_contacts_low_level, dt)
@@ -883,7 +883,8 @@ def find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes
 def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
     # make shapes
     shapes, shape_shape_frictions, shape_ground_frictions =  set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, shape_masses, shape_ground_frictions_in)
-    combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
+    #combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
+    combined = combined_body(shapes, np.array([-0., 0., 0.]), np.array([0., 0., 0.]))
 
     # set time
     time = 0
@@ -891,6 +892,11 @@ def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
 
     # run the simulation
     run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions,shape_ground_frictions, True, False, motion_script)
+
+    print("Mass:",combined.mass)
+    print("COM:",combined.COM)
+    print("I:",combined.I)
+    print("I for the y-axis:",combined.I[1][1])
 
 
 
@@ -929,9 +935,9 @@ for i in np.arange(32):
 temp_mass_values = np.concatenate((np.array([8.]*32), np.array([2.]*56)))
 
 time_step = 100
-motion_script = file_handling.read_motion_script_file(os.path.join("test5","motion_script.csv"))
+#motion_script = file_handling.read_motion_script_file(os.path.join("test1","motion_script.csv"))
 
-#ordinary_run(actual_mass_values, actual_mu_values)
+ordinary_run(actual_mass_values, actual_mu_values)
 #ordinary_run(actual_mass_values, actual_mu_values, motion_script=motion_script)
 #run_derivatives_sweep(1, False, masses, motion_script, time_step, temp_mass_values, temp_friction_values)
 #run_derivatives_sweep(1, False, masses, motion_script, time_step, actual_mass_values, actual_mu_values)
@@ -949,7 +955,7 @@ run_2D_loss_sweep(0, 1, False, np.linspace(0.5, 11.5, 99), np.linspace(0.5, 11.5
 loss_sweep_file.close()'''
 
 
-shapes_len = len(combined_info)
+'''shapes_len = len(combined_info)
 #initial_guess = np.concatenate((15*np.random.random(2)+0.5, (np.random.random(2))*0.45)) #for hammer, split into handle and head
 initial_guess = np.concatenate((np.random.random(2), (np.random.random(2)))) #for hammer, split into handle and head, normalized
 #initial_guess = np.concatenate((np.array([temp_mass_values[0],temp_mass_values[60]]), (np.random.random(2))*0.45)) #for hammer, split into handle and head
@@ -978,8 +984,8 @@ mult_factor = None
 vals = find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes_len)
 #ughudhrtuhg = input("Go?")
 #ordinary_run(vals[:shapes_len], vals[shapes_len:])
-#ordinary_run(np.concatenate((np.repeat(376./32.*(.8*vals[0]+.1), 32), np.repeat(376./56.*(1.-(.8*vals[0]+.1)),56))), np.concatenate((np.repeat(vals[2]/2.,32), np.repeat(vals[3]/2.,56)))) #for hammer, split into handle and head
+ordinary_run(np.concatenate((np.repeat(376./32.*(.8*vals[0]+.1), 32), np.repeat(376./56.*(1.-(.8*vals[0]+.1)),56))), np.concatenate((np.repeat(vals[2]/2.,32), np.repeat(vals[3]/2.,56)))) #for hammer, split into handle and head
 print(vals)
-#print(vals[0]*vals[2],vals[1]*vals[3])
+#print(vals[0]*vals[2],vals[1]*vals[3])'''
 
 #run_mass_derivatives_sweep_in_combined_shape(0, masses, [1.,1.], [0.2, 0.02])
