@@ -405,7 +405,7 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
             else:
                 shape_ground_apply_impulse_derivatives(shape, friction, r, I_inv, None, friction_mass_derivatives, one_shape_friction_I_inv_mass_derivatives, friction_mu_derivative)
 
-def external_force_impulse(combined, component_number, dt, find_derivatives):
+def external_force_impulse(combined, external_force_magn, component_number, direction_x, dt, find_derivatives):
     # add external force collision
     '''
     # get first vertex on the first collision shape with the smallest x coord
@@ -419,10 +419,10 @@ def external_force_impulse(combined, component_number, dt, find_derivatives):
     '''
     #get first vertex on the first collision shape
     # contact is at the center of mass along the y-axis (height)
-    external_force_contact_location = combined.components[component_number].vertices[0] * np.array([1., 0., 1.])
+    external_force_contact_location = geometry_utils.to_world_coords(combined.components[component_number], combined.components[component_number].vertices[0]) * np.array([1., 0., 1.])
     external_force_contact_location[1] = combined.components[component_number].location[1]
-    external_force_direction = np.array([1., 0., 0.])
-    external_force_impulse_magn = 1500. * dt
+    external_force_direction = np.array([direction_x, 0., 0.])
+    external_force_impulse_magn = external_force_magn * dt
     external_force_impulse = external_force_impulse_magn*external_force_direction
 
     r = external_force_contact_location - geometry_utils.to_world_coords(combined, combined.COM)
@@ -440,3 +440,5 @@ def external_force_impulse(combined, component_number, dt, find_derivatives):
             external_force_impulse_mass_derivatives.append(np.array([0.,0.,0.]))
         #print("external force", external_force_impulse)
         shape_ground_apply_impulse_derivatives(combined, external_force_impulse, r, I_inv, None, external_force_impulse_mass_derivatives, I_inv_mass_derivatives)
+
+    return external_force_contact_location

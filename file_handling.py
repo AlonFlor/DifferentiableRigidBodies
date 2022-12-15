@@ -99,6 +99,23 @@ def read_motion_script_file(motion_script_file_to_use):
         motion_script.append(motion_script_line)
     return motion_script
 
+def read_external_force_script_file(external_force_script_file_to_use):
+    external_force_script_data_file = open(external_force_script_file_to_use, "r")
+    external_force_script_raw = external_force_script_data_file.read()
+    external_force_script_data_file.close()
+    external_force_script_raw_lines = external_force_script_raw.split("\n")[1:-1]
+    external_force_script = []
+
+    for line in external_force_script_raw_lines:
+        split_line = line.split(",")
+        external_force_script_line = []
+
+        external_force_script_line.append(float(split_line[0]))
+        external_force_script_line.append(int(split_line[1]))
+        external_force_script_line.append(int(split_line[2]))
+
+        external_force_script.append(external_force_script_line)
+    return external_force_script
 
 def setup_records_and_motion_script(shapes):
     # make directory for simulation files
@@ -137,7 +154,7 @@ def setup_records_and_motion_script(shapes):
         locations_records.write(",shape_" + str(count) + "_quaternion_k")
         locations_records.write(",shape_" + str(count) + "_quaternion_s")
     locations_records.write("\n")
-    motion_script.write(",contacts if any (8 columns per ground-shape contact and 9 columns per shape-shape contact)\n")
+    motion_script.write(",contacts if any (8 columns per ground-shape contact and 9 columns per shape-shape contact) plus 6 columns at the end for the external force\n")
 
     energies_file = os.path.join(dir_name, "data_energy.csv")
     energies_records = open(energies_file, "w")
@@ -189,6 +206,14 @@ def write_contacts_in_motion_script(shapes, shape_shape_contacts_low_level, grou
         motion_script.write("," + str(normal[0]))
         motion_script.write("," + str(normal[1]))
         motion_script.write("," + str(normal[2]))
+
+def write_external_force_info_in_motion_script(external_force_magn, external_force_contact_location, direction_x, motion_script):
+    motion_script.write(",external_force")
+    motion_script.write(","+str(external_force_magn))
+    motion_script.write(","+str(external_force_contact_location[0]))
+    motion_script.write(","+str(external_force_contact_location[1]))
+    motion_script.write(","+str(external_force_contact_location[2]))
+    motion_script.write(","+str(direction_x))
     motion_script.write("\n")
 
 

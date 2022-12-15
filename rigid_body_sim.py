@@ -150,15 +150,17 @@ class combined_body:
         #component translations from this shape to child shape
         self.component_rotations = []
         self.component_translations = []
+        self.component_translations_COM = []
         for shape in self.components:
             self.component_rotations.append(shape.orientation + 0.)
-            self.component_translations.append(shape.location - self.COM)
+            self.component_translations.append(shape.location - self.location)
+            self.component_translations_COM.append(shape.location - self.COM)
 
         #get moment of inertia and its inverse
         self.I = np.zeros((3,3))
         for index in np.arange(len(self.components)):
             shape = self.components[index]
-            displacement = self.component_translations[index]
+            displacement = self.component_translations_COM[index]
             translated_shape_I = shape.I + shape.mass*(np.dot(displacement, displacement)*np.identity(3) - np.outer(displacement, displacement))
             R = geometry_utils.quaternion_to_rotation_matrix(self.component_rotations[index])
             self.I += np.matmul(R, np.matmul(translated_shape_I, R.T))
@@ -176,7 +178,7 @@ class combined_body:
         for index in np.arange(len(self.components)):
             self.I_mass_derivatives.append(np.zeros((3,3)))
             shape = self.components[index]
-            displacement = self.component_translations[index]
+            displacement = self.component_translations_COM[index]
             translated_shape_I_mass_derivative = shape.I_mass_derivative + (np.dot(displacement, displacement)*np.identity(3) - np.outer(displacement, displacement))
             R = geometry_utils.quaternion_to_rotation_matrix(self.component_rotations[index])
             self.I_mass_derivatives[index] += np.matmul(R, np.matmul(translated_shape_I_mass_derivative, R.T))
@@ -270,21 +272,23 @@ def set_up_component_shapes(info, location, orientation, masses, shape_ground_fr
 
 
 
-def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, find_derivatives, locations_records=None, motion_script_to_write=None, energies_records=None, time=None, script_at_current_step=None):
-    if script_at_current_step is not None:
-        combined.location[0] = script_at_current_step[1]
-        combined.location[1] = script_at_current_step[2]
-        combined.location[2] = script_at_current_step[3]
-        combined.orientation[0] = script_at_current_step[4]
-        combined.orientation[1] = script_at_current_step[5]
-        combined.orientation[2] = script_at_current_step[6]
-        combined.orientation[3] = script_at_current_step[7]
-        combined.velocity[0] = script_at_current_step[8]
-        combined.velocity[1] = script_at_current_step[9]
-        combined.velocity[2] = script_at_current_step[10]
-        combined.angular_velocity[0] = script_at_current_step[11]
-        combined.angular_velocity[1] = script_at_current_step[12]
-        combined.angular_velocity[2] = script_at_current_step[13]
+def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, find_derivatives, external_force_script_step, locations_records=None, motion_script_to_write=None, energies_records=None, time=None, motion_script_at_current_step=None):
+    writing_motion_script = (locations_records is not None)
+
+    if motion_script_at_current_step is not None:
+        combined.location[0] = motion_script_at_current_step[1]
+        combined.location[1] = motion_script_at_current_step[2]
+        combined.location[2] = motion_script_at_current_step[3]
+        combined.orientation[0] = motion_script_at_current_step[4]
+        combined.orientation[1] = motion_script_at_current_step[5]
+        combined.orientation[2] = motion_script_at_current_step[6]
+        combined.orientation[3] = motion_script_at_current_step[7]
+        combined.velocity[0] = motion_script_at_current_step[8]
+        combined.velocity[1] = motion_script_at_current_step[9]
+        combined.velocity[2] = motion_script_at_current_step[10]
+        combined.angular_velocity[0] = motion_script_at_current_step[11]
+        combined.angular_velocity[1] = motion_script_at_current_step[12]
+        combined.angular_velocity[2] = motion_script_at_current_step[13]
 
     combined.set_component_locations_and_orientations()
 
@@ -300,7 +304,7 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
         total_energy += shape.KE + shape.PE
 
     # record
-    if locations_records is not None:
+    if writing_motion_script:
         file_handling.write_records_and_motion_script(locations_records, motion_script_to_write, energies_records, time, total_KE, total_PE, total_energy, combined, shapes)
 
     # move
@@ -322,38 +326,38 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
     combined.velocity[1] -= 9.8*dt'''
 
     # read contact info from existing script, if such as script has been provided
-    if script_at_current_step is not None:
+    if motion_script_at_current_step is not None:
         shape_shape_contacts_low_level = []
         ground_contacts_low_level = []
         i = 14
-        while i < len(script_at_current_step):
-            type_of_contact = script_at_current_step[i]
+        while i < len(motion_script_at_current_step):
+            type_of_contact = motion_script_at_current_step[i]
             if type_of_contact == "shape-shape_contact":
-                shape1_index = script_at_current_step[i + 1]
-                shape2_index = script_at_current_step[i + 2]
+                shape1_index = motion_script_at_current_step[i + 1]
+                shape2_index = motion_script_at_current_step[i + 2]
                 shape1 = shapes[shape1_index]
                 shape2 = shapes[shape2_index]
                 contact_location = np.array([0., 0., 0.])
-                contact_location[0] = script_at_current_step[i + 3]
-                contact_location[1] = script_at_current_step[i + 4]
-                contact_location[2] = script_at_current_step[i + 5]
+                contact_location[0] = motion_script_at_current_step[i + 3]
+                contact_location[1] = motion_script_at_current_step[i + 4]
+                contact_location[2] = motion_script_at_current_step[i + 5]
                 normal = np.array([0., 0., 0.])
-                normal[0] = script_at_current_step[i + 6]
-                normal[1] = script_at_current_step[i + 7]
-                normal[2] = script_at_current_step[i + 8]
+                normal[0] = motion_script_at_current_step[i + 6]
+                normal[1] = motion_script_at_current_step[i + 7]
+                normal[2] = motion_script_at_current_step[i + 8]
                 shape_shape_contacts_low_level.append(((shape1, shape2), (contact_location, normal)))
                 i = i + 9
             elif type_of_contact == "ground-shape_contact":
-                shape_index = script_at_current_step[i + 1]
+                shape_index = motion_script_at_current_step[i + 1]
                 shape = shapes[shape_index]
                 contact_location = np.array([0., 0., 0.])
-                contact_location[0] = script_at_current_step[i + 2]
-                contact_location[1] = script_at_current_step[i + 3]
-                contact_location[2] = script_at_current_step[i + 4]
+                contact_location[0] = motion_script_at_current_step[i + 2]
+                contact_location[1] = motion_script_at_current_step[i + 3]
+                contact_location[2] = motion_script_at_current_step[i + 4]
                 normal = np.array([0., 0., 0.])
-                normal[0] = script_at_current_step[i + 5]
-                normal[1] = script_at_current_step[i + 6]
-                normal[2] = script_at_current_step[i + 7]
+                normal[0] = motion_script_at_current_step[i + 5]
+                normal[1] = motion_script_at_current_step[i + 6]
+                normal[2] = motion_script_at_current_step[i + 7]
                 ground_contacts_low_level.append((shape, (contact_location, normal)))
                 i = i + 8
     else:
@@ -380,7 +384,7 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
                 if (collision_detection.AABB_intersect(shapes[i], shapes[j])):
                     collision_check_list.append((shapes[i], shapes[j]))
             # check for ground collisions
-            if shapes[i].bounding_box[2] < -0.00001:  # threshold
+            if shapes[i].bounding_box[2] < -0.00001:  # threshold, bounding_box[2] is min_y
                 ground_contacts_check_list.append(shapes[i])
 
         # main collision detection
@@ -388,7 +392,7 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
         ground_contacts_low_level = collision_detection.shape_ground_collision_detection(ground_contacts_check_list)  # []#no ground contacts
 
     # write down the contacts in the motion script
-    if locations_records is not None:
+    if writing_motion_script:
         file_handling.write_contacts_in_motion_script(shapes, shape_shape_contacts_low_level, ground_contacts_low_level, motion_script_to_write)
 
     # get friction coefficients
@@ -403,8 +407,11 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
         ground_contact_friction_coefficients.append(shape_ground_frictions[shape])
 
     #apply external forces
-    collision_handling_basic_impulse.external_force_impulse(combined, 0, dt, find_derivatives)
-    #collision_handling_basic_impulse.external_force_impulse(combined, len(shapes)-1, dt, find_derivatives)
+    external_force_magn, component_number, direction_x = external_force_script_step
+    external_force_contact_location = collision_handling_basic_impulse.external_force_impulse(combined, external_force_magn, component_number, direction_x, dt, find_derivatives)
+
+    if writing_motion_script:
+        file_handling.write_external_force_info_in_motion_script(external_force_magn, external_force_contact_location, direction_x, motion_script_to_write)
 
     #handle collisions
     #collision_handling_LCP.handle_collisions_LCP(combined, ground_contacts_low_level, dt)
@@ -423,17 +430,22 @@ def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions,
         if True:  # (step % 40 == 0):#
             print("simulation\tt =", time)
 
-        script_at_current_step = None
+        motion_script_at_current_step = None
         if existing_motion_script is not None:
             if step >= len(existing_motion_script):
                 print("Error: Simulation running for longer than the provided motion script")
                 exit()
-            script_at_current_step = existing_motion_script[step]
+            motion_script_at_current_step = existing_motion_script[step]
+
+        if step >= len(external_force_script):
+            external_force_script_step = [0., 0, 0]
+        else:
+            external_force_script_step = external_force_script[step]
 
         if writing_to_files:
-            run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, find_derivatives, locations_records=locations_records, motion_script_to_write=motion_script, energies_records=energies_records, time=time, script_at_current_step=script_at_current_step)
+            run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, find_derivatives, external_force_script_step, locations_records=locations_records, motion_script_to_write=motion_script, energies_records=energies_records, time=time, motion_script_at_current_step=motion_script_at_current_step)
         else:
-            run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, find_derivatives, script_at_current_step=script_at_current_step)
+            run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, find_derivatives, external_force_script_step, motion_script_at_current_step=motion_script_at_current_step)
 
         #update time
         #to do: make this symplectic (velocity verlet)
@@ -453,9 +465,11 @@ def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions,
 def run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step):
     fixed_contact_shapes = combined.fixed_contacts
 
-    script_at_current_step = motion_script[time_step]
+    external_force_script_step = external_force_script[time_step]
+
+    motion_script_at_current_step = motion_script[time_step]
     next_time_step = time_step + 1
-    run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, True, script_at_current_step=script_at_current_step)
+    run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, fixed_contact_shapes, True, external_force_script_step, motion_script_at_current_step=motion_script_at_current_step)
 
     deviations_from_script = []
 
@@ -570,7 +584,7 @@ def run_mass_derivatives_sweep_in_combined_shape(shape_to_alter_index, values_to
     print("derivatives avg error =",avg_abs_error)
 
 
-def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count, motion_script, time_step, shape_masses, shape_ground_frictions_in):
+def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count, motion_script, external_force_script, time_step, shape_masses, shape_ground_frictions_in):
     result = []
     result_deriv = []
     result_deriv_estimate = []
@@ -587,7 +601,7 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
             shape_masses[shape_to_alter_index]=value
         shapes, shape_shape_frictions, shape_ground_frictions = \
             set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, shape_masses, shape_ground_frictions_in)
-        combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
+        combined = combined_body(shapes, np.array([-0., 0., 0.]), np.array([0., 0., 0.]))
 
         deviation_from_script_squared, \
         deviations_from_script_squared_mass_derivatives, \
@@ -631,7 +645,7 @@ def run_derivatives_sweep(shape_to_alter_index, doing_friction, values_to_count,
     else:
         print("derivatives avg relative error is not available, since estimated derivatives are zero or close to zero")'''
 
-def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing_friction, values_to_count, motion_script, time_step, shape_masses, shape_ground_frictions_in):
+def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing_friction, values_to_count, motion_script, external_force_script, time_step, shape_masses, shape_ground_frictions_in):
     X, Y = np.meshgrid(values_to_count, values_to_count)
 
     zero = X*0
@@ -651,7 +665,7 @@ def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing
                 shape_masses[shape_to_alter_index2] = value_y
             shapes, shape_shape_frictions, shape_ground_frictions = \
                 set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, shape_masses, shape_ground_frictions_in)
-            combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
+            combined = combined_body(shapes, np.array([-0., 0., 0.]), np.array([0., 0., 0.]))
 
             Z_result[coord_x, coord_y], mass_derivatives, mu_derivatives = \
                 run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
@@ -668,7 +682,7 @@ def run_2D_derivatives_sweep(shape_to_alter_index1, shape_to_alter_index2, doing
     draw_data.plot_3D_data(X, Y, Z_result, Z_x_derivative, Z_x_derivative_estimate, zero)
     draw_data.plot_3D_data(X, Y, Z_result, Z_y_derivative, Z_y_derivative_estimate, zero)
 
-def run_2D_loss_sweep(shape_to_alter_index1, shape_to_alter_index2, doing_friction, values_to_count_index1, values_to_count_index2, motion_script, time_step, shape_masses, shape_ground_frictions_in):
+def run_2D_loss_sweep(shape_to_alter_index1, shape_to_alter_index2, doing_friction, values_to_count_index1, values_to_count_index2, motion_script, external_force_script, time_step, shape_masses, shape_ground_frictions_in):
     X, Y = np.meshgrid(values_to_count_index1, values_to_count_index2)
     X=X.T
     Y=Y.T
@@ -692,7 +706,7 @@ def run_2D_loss_sweep(shape_to_alter_index1, shape_to_alter_index2, doing_fricti
             #                            np.concatenate((np.repeat(shape_masses[shape_to_alter_index1], 32), np.repeat(shape_masses[shape_to_alter_index2], 56))),
             #                            np.concatenate((np.repeat(shape_ground_frictions_in[shape_to_alter_index1], 32), np.repeat(shape_ground_frictions_in[shape_to_alter_index2], 56))))
 
-            combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
+            combined = combined_body(shapes, np.array([-0., 0., 0.]), np.array([0., 0., 0.]))
             print(coord_x, coord_y)
             print(Z_result.shape)
             Z_result[coord_x, coord_y], mass_derivatives, mu_derivatives = \
@@ -709,7 +723,7 @@ def run_2D_loss_sweep(shape_to_alter_index1, shape_to_alter_index2, doing_fricti
     # draw plot
     draw_data.plot_3D_loss_func(X.T, Y.T, np.log10(Z_result.T))
 
-def find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes_len):
+def find_values_L_BFSG_B(motion_script, external_force_script, time_step, initial_guess, bounds, shapes_len):
 
     def func(x):
         # make shapes
@@ -719,7 +733,7 @@ def find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes
         shapes, shape_shape_frictions, shape_ground_frictions = set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation,
                                                                                         np.concatenate((np.repeat(376./32.*(.8*x[0]+.1),32), np.repeat(376./56.*(1.-(.8*x[0]+.1)),56))),
                                                                                         np.concatenate((np.repeat(x[2]/2.,32), np.repeat(x[3]/2.,56))))
-        combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
+        combined = combined_body(shapes, np.array([-0., 0., 0.]), np.array([0., 0., 0.]))
 
         result, mass_derivatives, mu_derivatives = \
             run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
@@ -776,7 +790,7 @@ def find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes
     print(str(result.fun) + "," + str(result.x[0]) + "," + str(1.-result.x[0]) + "," + str(result.x[2]) + "," + str(result.x[3]) + ",," + str(result.jac[0]) + "," + str(result.jac[1]) + "," + str(result.jac[2]) + "," + str(result.jac[3]) + "\n")
     return result.x
 
-'''def find_values(motion_script, time_step, initial_guess, bounds, shapes_len):
+'''def find_values(motion_script, external_force_script, time_step, initial_guess, bounds, shapes_len):
 
     def func(x):
         # make shapes
@@ -786,7 +800,7 @@ def find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes
         shapes, shape_shape_frictions, shape_ground_frictions = set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation,
                                                                                         np.concatenate((np.repeat(376./32.*x[0],32), np.repeat(376./56.*(1.-x[0]),56))),
                                                                                         np.concatenate((np.repeat(x[2]/2.,32), np.repeat(x[3]/2.,56))))
-        combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
+        combined = combined_body(shapes, np.array([-0., 0., 0.]), np.array([0., 0., 0.]))
 
         result, mass_derivatives, mu_derivatives = \
             run_time_step_to_take_deviation_and_derivatives(dt, shapes, combined, shape_shape_frictions, shape_ground_frictions, motion_script, time_step)
@@ -883,12 +897,11 @@ def find_values_L_BFSG_B(motion_script, time_step, initial_guess, bounds, shapes
 def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
     # make shapes
     shapes, shape_shape_frictions, shape_ground_frictions =  set_up_component_shapes(combined_info, np.array([0., 0.4999804, 5.]), rotation, shape_masses, shape_ground_frictions_in)
-    #combined = combined_body(shapes, np.array([-1., 0., 0.]), np.array([0., 0., 0.]))
     combined = combined_body(shapes, np.array([-0., 0., 0.]), np.array([0., 0., 0.]))
 
     # set time
     time = 0
-    total_time = .15#10
+    total_time = 3.#.15#10
 
     # run the simulation
     run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions,shape_ground_frictions, True, False, motion_script)
@@ -905,6 +918,8 @@ print()
 #combined_info = file_handling.read_combined_boxes_rigid_body_file("try1.txt")
 combined_info = file_handling.read_combined_boxes_rigid_body_file("hammer.txt")
 rotation = geometry_utils.normalize(np.array([0., 0.3, 0., 0.95]))
+
+external_force_script = file_handling.read_external_force_script_file("external_force_script.csv")
 
 # set dt
 dt = 0.001
