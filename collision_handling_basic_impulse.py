@@ -140,9 +140,9 @@ def shape_ground_collision_impulse_derivatives(shape, contact, r, R, I_inv, impu
     return impulse_mass_derivatives, I_inv_mass_derivatives
 
 def shape_ground_apply_impulse(shape, impulse, r, I_inv):
-    #since we are dealing with friction on the ground here, only y-axis changes can be made to angular velocity
-    shape.velocity -= impulse / shape.mass
-    shape.angular_velocity -= np.matmul(I_inv,np.cross(r,impulse))*np.array([0.,1.,0.])
+    #since we are dealing with the object on the ground here, only y-axis changes can be made to angular velocity
+    shape.velocity += impulse / shape.mass
+    shape.angular_velocity += np.matmul(I_inv,np.cross(r,impulse))*np.array([0.,1.,0.])
 
     #print("shape.velocity -= ",impulse / shape.mass)
     #print("shape.angular_velocity -= ",np.matmul(I_inv,np.cross(r,impulse))*np.array([0.,1.,0.]))
@@ -156,8 +156,8 @@ def shape_ground_apply_impulse_derivatives(shape, impulse, r, I_inv, component_i
     for i in np.arange(len(impulse_mass_derivatives)):
         impulse_mass_derivative = impulse_mass_derivatives[i]
         I_inv_mass_derivative = I_inv_mass_derivatives[i]
-        velocity_mass_derivatives.append(-1*mass_inv * impulse_mass_derivative + impulse * mass_inv*mass_inv)
-        angular_velocity_mass_derivatives.append(np.array([0.,1.,0.])*(-1*np.matmul(I_inv,np.cross(r,impulse_mass_derivative)) - np.matmul(I_inv_mass_derivative,np.cross(r,impulse))))
+        velocity_mass_derivatives.append(mass_inv * impulse_mass_derivative - impulse * mass_inv*mass_inv)
+        angular_velocity_mass_derivatives.append(np.array([0.,1.,0.])*(np.matmul(I_inv,np.cross(r,impulse_mass_derivative)) + np.matmul(I_inv_mass_derivative,np.cross(r,impulse))))
     #print("velocity mass derivatives from this force:",velocity_mass_derivatives)
     #print("angular velocity mass derivatives from this force:", angular_velocity_mass_derivatives)
     '''total_v = 0.
@@ -208,9 +208,9 @@ def get_shape_ground_tangential_velocity(shape, contact_location, normal):
 
     shape_velocity_normal = normal*np.dot(shape_velocity, normal)
 
-    shape_velocity_perpendicular = shape_velocity - shape_velocity_normal
+    shape_velocity_perpendicular_to_normal = shape_velocity - shape_velocity_normal
 
-    return shape_velocity_perpendicular
+    return shape_velocity_perpendicular_to_normal
 
 
 def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients):
@@ -347,7 +347,7 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
         mu = ground_contact_friction_coefficients[i]
         restitution = 0.
 
-        friction_direction = tangential_velocity / tangential_velocity_magn
+        friction_direction = -1*tangential_velocity / tangential_velocity_magn
         relative_motion_friction, r, I_inv, R, impulse_denom, impulse_num = shape_ground_collision_impulse(shape, (world_point, friction_direction), tangential_velocity_magn, restitution)
         relative_motion_friction_magn = np.linalg.norm(relative_motion_friction)
         mu_normal_friction_magn = mu * normal_impulse_magn

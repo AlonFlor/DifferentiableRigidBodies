@@ -92,6 +92,13 @@ def read_motion_script_file(motion_script_file_to_use):
                     motion_script_line.append(float(split_line[i + 6]))
                     motion_script_line.append(float(split_line[i + 7]))
                     i = i + 8
+                elif type_of_contact == "external_force":
+                    motion_script_line.append(float(split_line[i + 1]))
+                    motion_script_line.append(float(split_line[i + 2]))
+                    motion_script_line.append(float(split_line[i + 3]))
+                    motion_script_line.append(float(split_line[i + 4]))
+                    motion_script_line.append(float(split_line[i + 5]))
+                    i = i + 6
                 else:
                     print("error: cannot read contact type in existing motion script: ", type_of_contact)
                     exit()

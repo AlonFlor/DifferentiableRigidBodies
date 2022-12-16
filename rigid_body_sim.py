@@ -407,15 +407,56 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
         ground_contact_friction_coefficients.append(shape_ground_frictions[shape])
 
     #apply external forces
+    init_vel_x = combined.velocity[0]
+    init_vel_y = combined.velocity[1]
+    init_vel_z = combined.velocity[2]
+    init_vel = np.linalg.norm(combined.velocity)
+    #print(init_vel)
     external_force_magn, component_number, direction_x = external_force_script_step
     external_force_contact_location = collision_handling_basic_impulse.external_force_impulse(combined, external_force_magn, component_number, direction_x, dt, find_derivatives)
+    #combined.set_component_velocities_and_angular_velocities()
 
     if writing_motion_script:
         file_handling.write_external_force_info_in_motion_script(external_force_magn, external_force_contact_location, direction_x, motion_script_to_write)
 
     #handle collisions
     #collision_handling_LCP.handle_collisions_LCP(combined, ground_contacts_low_level, dt)
-    collision_handling_basic_impulse.handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients)
+    push_vel_x= combined.velocity[0]
+    push_vel_y= combined.velocity[1]
+    push_vel_z= combined.velocity[2]
+    push_vel = np.linalg.norm(combined.velocity)
+    #print("push_vel",push_vel)
+    '''print("init_momentum",combined.mass*np.array([init_vel_x,init_vel_y,init_vel_z]))
+    print("push_momentum",combined.mass*np.array([push_vel_x,push_vel_y,push_vel_z]))
+    net_momentum =np.array([0.,0.,0.])
+    for i in np.arange(len(ground_contacts_low_level)):
+        shape, contact = ground_contacts_low_level[i]
+        world_point, normal = contact
+        tangential_velocity = collision_handling_basic_impulse.get_shape_ground_tangential_velocity(shape, world_point, normal)
+        net_momentum += shape.mass*tangential_velocity
+    print("net_momentum",net_momentum)
+    net_momentum =np.array([0.,0.,0.])
+    for shape in combined.components:
+        net_momentum += shape.mass * shape.velocity
+    print("net_momentum",net_momentum)'''
+    #collision_handling_basic_impulse.handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients)
+
+    final_vel_x = combined.velocity[0]
+    final_vel_y = combined.velocity[1]
+    final_vel_z = combined.velocity[2]
+    final_vel = np.linalg.norm(combined.velocity)
+    #print(final_vel)
+
+    print()
+    print(external_force_magn)
+    #print(np.array([push_vel_x, push_vel_y, push_vel_z]) - np.array([init_vel_x, init_vel_y, init_vel_z]))
+    #print(np.dot(np.array([init_vel_x, init_vel_y, init_vel_z]), np.array([direction_x, 0., 0.])))
+    print(np.array([push_vel_x, push_vel_y, push_vel_z]))
+    print(np.array([final_vel_x, final_vel_y, final_vel_z]))
+    print(np.array([final_vel_x-push_vel_x, final_vel_y-push_vel_y, final_vel_z-push_vel_z]))
+    #print(1./((push_vel_x-init_vel_x)/dt/external_force_magn))
+    #print(final_vel_x-push_vel_x)
+    print("\n\n")
 
 
 def run_sim(start_time, dt, total_time, shapes, combined, shape_shape_frictions, shape_ground_frictions, writing_to_files, find_derivatives, existing_motion_script=None):
@@ -572,7 +613,7 @@ def run_mass_derivatives_sweep_in_combined_shape(shape_to_alter_index, values_to
         outermost_count += 1
 
     #draw plot
-    draw_data.plot_data(values_to_count, result, result_deriv, result_deriv_estimate)
+    draw_data.plot_data_three_curves(values_to_count, result, result_deriv, result_deriv_estimate)
 
     #print out errors
     avg_abs_error = 0.
@@ -901,7 +942,7 @@ def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
 
     # set time
     time = 0
-    total_time = 3.#.15#10
+    total_time = 1.#.15#10
 
     # run the simulation
     run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions,shape_ground_frictions, True, False, motion_script)

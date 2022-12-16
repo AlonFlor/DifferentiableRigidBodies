@@ -4,11 +4,11 @@ def plot_data(x_axis_data, y_axis_data):
     plt.plot(x_axis_data, y_axis_data, 'b')
     plt.show()
 
-def plot_data(x_axis_data, y_axis_data1, y_axis_data2):
+def plot_data_two_curves(x_axis_data, y_axis_data1, y_axis_data2):
     plt.plot(x_axis_data, y_axis_data1, 'b', x_axis_data, y_axis_data2, 'g')
     plt.show()
 
-def plot_data(x_axis_data, y_axis_data1, y_axis_data2, y_axis_data3):
+def plot_data_three_curves(x_axis_data, y_axis_data1, y_axis_data2, y_axis_data3):
     plt.plot(x_axis_data, y_axis_data1, 'b', x_axis_data, y_axis_data2, 'g', x_axis_data, y_axis_data3, 'r')
     plt.show()
 
