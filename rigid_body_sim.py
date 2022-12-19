@@ -154,7 +154,7 @@ class combined_body:
         for shape in self.components:
             self.component_rotations.append(shape.orientation + 0.)
             self.component_translations.append(shape.location - self.location)
-            self.component_translations_COM.append(shape.location - self.COM)
+            self.component_translations_COM.append(shape.location - geometry_utils.to_world_coords(self,self.COM))
 
         #get moment of inertia and its inverse
         self.I = np.zeros((3,3))
@@ -294,6 +294,68 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
 
     combined.set_component_velocities_and_angular_velocities()
 
+    #---------------------------------------------------------------------------------------------------------
+    #stuff to see if finding the center of mass is feasible
+    print("velocity",combined.velocity)
+    print("angular velocity",combined.angular_velocity)
+    #print("component 1 position",combined.components[1].location)
+    print("component 1 velocity",combined.components[1].velocity)
+    print("component 30 velocity",combined.components[30].velocity)
+    print("component 61 velocity",combined.components[61].velocity)
+    print()
+
+    if(combined.angular_velocity[1] != 0):
+        comp1_r_x = -(combined.components[1].velocity[2] - combined.velocity[2])/combined.angular_velocity[1]
+        comp1_r_z = (combined.components[1].velocity[0] - combined.velocity[0])/combined.angular_velocity[1]
+        print("component 1 r_x",comp1_r_x)
+        print("component 1 r_z",comp1_r_z)
+        print("\t\t\t\t\t\t\t\t\t\tcomponent 1 |r|",np.sqrt(comp1_r_x*comp1_r_x + comp1_r_z*comp1_r_z))
+
+        comp30_r_x = -(combined.components[30].velocity[2] - combined.velocity[2])/combined.angular_velocity[1]
+        comp30_r_z = (combined.components[30].velocity[0] - combined.velocity[0])/combined.angular_velocity[1]
+        print("component 30 r_x",comp30_r_x)
+        print("component 30 r_z",comp30_r_z)
+        print("\t\t\t\t\t\t\t\t\t\tcomponent 30 |r|",np.sqrt(comp30_r_x*comp30_r_x + comp30_r_z*comp30_r_z))
+
+        comp61_r_x = -(combined.components[61].velocity[2] - combined.velocity[2])/combined.angular_velocity[1]
+        comp61_r_z = (combined.components[61].velocity[0] - combined.velocity[0])/combined.angular_velocity[1]
+        print("component 61 r_x",comp61_r_x)
+        print("component 61 r_z",comp61_r_z)
+        print("\t\t\t\t\t\t\t\t\t\tcomponent 61 |r|",np.sqrt(comp61_r_x*comp61_r_x + comp61_r_z*comp61_r_z))
+
+    print()
+    print("Actual values")
+
+    comp1_r_x = combined.components[1].location[0] - (geometry_utils.to_world_coords(combined, combined.COM)[0])
+    comp1_r_z = combined.components[1].location[2] - (geometry_utils.to_world_coords(combined, combined.COM)[2])
+    print("\t\t\t\t\tcomponent 1 r_x",comp1_r_x)
+    print("\t\t\t\t\tcomponent 1 r_z",comp1_r_z)
+    print("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tcomponent 1 |r|",np.sqrt(comp1_r_x*comp1_r_x + comp1_r_z*comp1_r_z))
+
+    comp30_r_x = combined.components[30].location[0] - (geometry_utils.to_world_coords(combined, combined.COM)[0])
+    comp30_r_z = combined.components[30].location[2] - (geometry_utils.to_world_coords(combined, combined.COM)[2])
+    print("\t\t\t\t\tcomponent 30 r_x",comp30_r_x)
+    print("\t\t\t\t\tcomponent 30 r_z",comp30_r_z)
+    print("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tcomponent 30 |r|",np.sqrt(comp30_r_x*comp30_r_x + comp30_r_z*comp30_r_z))
+
+    comp61_r_x = combined.components[61].location[0] - (geometry_utils.to_world_coords(combined, combined.COM)[0])
+    comp61_r_z = combined.components[61].location[2] - (geometry_utils.to_world_coords(combined, combined.COM)[2])
+    print("\t\t\t\t\tcomponent 61 r_x",comp61_r_x)
+    print("\t\t\t\t\tcomponent 61 r_z",comp61_r_z)
+    print("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tcomponent 61 |r|",np.sqrt(comp61_r_x*comp61_r_x + comp61_r_z*comp61_r_z))
+
+    print("distances:")
+    print("component 1: ", np.linalg.norm(combined.components[1].location - geometry_utils.to_world_coords(combined, combined.COM)))
+    print("component 30: ", np.linalg.norm(combined.components[30].location - geometry_utils.to_world_coords(combined, combined.COM)))
+    print("component 61: ", np.linalg.norm(combined.components[61].location - geometry_utils.to_world_coords(combined, combined.COM)))
+
+    '''print()
+    print("distances to just location, ignoring com:")
+    print("component 1: ", np.linalg.norm(combined.components[1].location - combined.location))
+    print("component 30: ", np.linalg.norm(combined.components[30].location - combined.location))
+    print("component 61: ", np.linalg.norm(combined.components[61].location - combined.location))'''
+    #---------------------------------------------------------------------------------------------------------
+
     # update energies
     total_KE = 0
     total_PE = 0
@@ -407,11 +469,6 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
         ground_contact_friction_coefficients.append(shape_ground_frictions[shape])
 
     #apply external forces
-    init_vel_x = combined.velocity[0]
-    init_vel_y = combined.velocity[1]
-    init_vel_z = combined.velocity[2]
-    init_vel = np.linalg.norm(combined.velocity)
-    #print(init_vel)
     external_force_magn, component_number, direction_x = external_force_script_step
     external_force_contact_location = collision_handling_basic_impulse.external_force_impulse(combined, external_force_magn, component_number, direction_x, dt, find_derivatives)
     #combined.set_component_velocities_and_angular_velocities()
@@ -421,41 +478,7 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
 
     #handle collisions
     #collision_handling_LCP.handle_collisions_LCP(combined, ground_contacts_low_level, dt)
-    push_vel_x= combined.velocity[0]
-    push_vel_y= combined.velocity[1]
-    push_vel_z= combined.velocity[2]
-    push_vel = np.linalg.norm(combined.velocity)
-    #print("push_vel",push_vel)
-    '''print("init_momentum",combined.mass*np.array([init_vel_x,init_vel_y,init_vel_z]))
-    print("push_momentum",combined.mass*np.array([push_vel_x,push_vel_y,push_vel_z]))
-    net_momentum =np.array([0.,0.,0.])
-    for i in np.arange(len(ground_contacts_low_level)):
-        shape, contact = ground_contacts_low_level[i]
-        world_point, normal = contact
-        tangential_velocity = collision_handling_basic_impulse.get_shape_ground_tangential_velocity(shape, world_point, normal)
-        net_momentum += shape.mass*tangential_velocity
-    print("net_momentum",net_momentum)
-    net_momentum =np.array([0.,0.,0.])
-    for shape in combined.components:
-        net_momentum += shape.mass * shape.velocity
-    print("net_momentum",net_momentum)'''
     #collision_handling_basic_impulse.handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients)
-
-    final_vel_x = combined.velocity[0]
-    final_vel_y = combined.velocity[1]
-    final_vel_z = combined.velocity[2]
-    final_vel = np.linalg.norm(combined.velocity)
-    #print(final_vel)
-
-    print()
-    print(external_force_magn)
-    #print(np.array([push_vel_x, push_vel_y, push_vel_z]) - np.array([init_vel_x, init_vel_y, init_vel_z]))
-    #print(np.dot(np.array([init_vel_x, init_vel_y, init_vel_z]), np.array([direction_x, 0., 0.])))
-    print(np.array([push_vel_x, push_vel_y, push_vel_z]))
-    print(np.array([final_vel_x, final_vel_y, final_vel_z]))
-    print(np.array([final_vel_x-push_vel_x, final_vel_y-push_vel_y, final_vel_z-push_vel_z]))
-    #print(1./((push_vel_x-init_vel_x)/dt/external_force_magn))
-    #print(final_vel_x-push_vel_x)
     print("\n\n")
 
 
@@ -942,13 +965,13 @@ def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
 
     # set time
     time = 0
-    total_time = 1.#.15#10
+    total_time = 3.#.15#10
 
     # run the simulation
     run_sim(time, dt, total_time, shapes, combined, shape_shape_frictions,shape_ground_frictions, True, False, motion_script)
 
     print("Mass:",combined.mass)
-    print("COM:",combined.COM)
+    print("local COM:",combined.COM)
     print("I:",combined.I)
     print("I for the y-axis:",combined.I[1][1])
 

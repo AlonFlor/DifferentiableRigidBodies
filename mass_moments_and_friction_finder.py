@@ -4,12 +4,13 @@ import os
 import numpy as np
 import scipy
 
-motion_script = file_handling.read_motion_script_file(os.path.join("test1","motion_script.csv"))
+motion_script = file_handling.read_motion_script_file(os.path.join("test4","motion_script.csv"))
 dt = 0.001
 
 print(motion_script[0])
 
 velocities = []
+angular_velocities_scaled_by_dt = []
 external_force_magnitudes = []
 for time_step_line in motion_script:
     external_force_magn = float(time_step_line[-5])
@@ -19,11 +20,14 @@ for time_step_line in motion_script:
         velocity = np.array([float(time_step_line[8]), float(time_step_line[9]), float(time_step_line[10])])
         velocity_magn = np.linalg.norm(velocity)
 
+        angular_velocities_scaled_by_dt.append(float(time_step_line[12])/dt)
+
         cos_theta=None
         if velocity_magn==0:
             cos_theta = 1
         else:
             cos_theta = np.dot(external_force_direction, velocity/velocity_magn)
+        #print(cos_theta)
 
         external_force_magnitudes.append(external_force_magn*cos_theta)
         velocities.append(velocity_magn)
@@ -33,8 +37,11 @@ delta_velocities_divided_by_dt = []
 for i in np.arange(len(velocities)-1):
     delta_velocities_divided_by_dt.append((velocities[i+1] - velocities[i])/dt)
 
+#draw_data.plot_data(external_force_magnitudes[:-1], delta_velocities_divided_by_dt)
+
 draw_data.plot_data(external_force_magnitudes[:-1], delta_velocities_divided_by_dt)
 
+draw_data.plot_data(external_force_magnitudes, angular_velocities_scaled_by_dt)
 
 draw_data.plot_data(external_force_magnitudes[100:-1], delta_velocities_divided_by_dt[100:])
 
@@ -47,7 +54,10 @@ print("mass result:", 1./velocity_regression_result.slope)
 print("translational mu result:", velocity_regression_result.intercept/-9.8)
 
 
-
+for time_step_line in motion_script:
+    external_force_magn = float(time_step_line[-5])
+    external_force_location = np.array([float(time_step_line[-4]), float(time_step_line[-3]), float(time_step_line[-2])])
+    external_force_direction = np.array([float(time_step_line[-1]), 0., 0.])
 
 '''
 Main problem seems to be that friction does not oppose the force, it opposes the current velocity, which may definitely be turned.

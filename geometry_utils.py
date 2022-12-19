@@ -84,7 +84,7 @@ def rotate_only_to_local_coords(shape, vector):
     return rotation_from_quaternion(quaternion_inverse(shape.orientation), vector)
 
 def velocity_of_point(shape, world_vertex):
-    return shape.velocity + np.cross(shape.angular_velocity, world_vertex - shape.location - shape.COM)
+    return shape.velocity + np.cross(shape.angular_velocity, world_vertex - to_world_coords(shape, shape.COM))
 
 
 
