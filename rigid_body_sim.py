@@ -478,7 +478,7 @@ def run_one_time_step(dt, shapes, combined, shape_shape_frictions, shape_ground_
 
     #handle collisions
     #collision_handling_LCP.handle_collisions_LCP(combined, ground_contacts_low_level, dt)
-    #collision_handling_basic_impulse.handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients)
+    collision_handling_basic_impulse.handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_derivatives, dt, ground_contact_friction_coefficients)
     print("\n\n")
 
 
