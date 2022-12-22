@@ -17,14 +17,34 @@ for count,coord_list in enumerate(obj):
 
     urdf_str += "\t" * indent + "<visual>\n"
     indent +=1
-    urdf_str += "\t" * indent + "<origin xyz(\"" + str(x) + " " + str(y) + " " + str(z) + "\") rpy(\"0 0 0\") />\n"
+    urdf_str += "\t" * indent + "<origin xyz(\"" + str(x) + " " + str(y) + " " + str(z) + "\")/>\n"
     urdf_str += "\t" * indent + "<geometry>\n"
     indent +=1
-    urdf_str += "\t" * indent + "<box 1 />\n"
+    urdf_str += "\t" * indent + "<box size = \"1 1 1\"/>\n"
     indent -=1
     urdf_str += "\t" * indent + "</geometry>\n"
     indent -=1
     urdf_str += "\t" * indent + "</visual>\n"
+
+    urdf_str += "\t" * indent + "<collision>\n"
+    indent +=1
+    urdf_str += "\t" * indent + "<origin xyz(\"" + str(x) + " " + str(y) + " " + str(z) + "\")/>\n"
+    urdf_str += "\t" * indent + "<geometry>\n"
+    indent +=1
+    urdf_str += "\t" * indent + "<box size = \"1 1 1\"/>\n"
+    indent -=1
+    urdf_str += "\t" * indent + "</geometry>\n"
+    indent -=1
+    urdf_str += "\t" * indent + "</collision>\n"
+
+    urdf_str += "\t" * indent + "<inertial>\n"
+    indent +=1
+    urdf_str += "\t" * indent + "<mass value = \"1\"/>\n"
+    urdf_str += "\t" * indent + "<friction value = \"0.1\"/>\n"
+    urdf_str += "\t" * indent + "<inertia ixx=\""+str(1./6.)+"\" ixy=\"0.0\" ixz=\"0.0\" iyy=\""+str(1./6.)+"\" iyz=\"0.0\" izz=\""+str(1./6.)+"\"/>\n"
+    urdf_str += "\t" * indent + "<origin xyz(\"" + str(x) + " " + str(y) + " " + str(z) + "\")/>\n"
+    indent -=1
+    urdf_str += "\t" * indent + "</inertial>\n"
 
     indent -=1
     urdf_str += "\t" * indent + "</link>\n"
@@ -32,8 +52,8 @@ for count,coord_list in enumerate(obj):
     if count > 0:
         urdf_str += "\t" * indent + "<joint name = \"joint" + str(count) + "\" type = \"fixed\">\n"
         indent += 1
-        urdf_str += "\t" * indent + "<parent link = \"box0\">\n"
-        urdf_str += "\t" * indent + "<child link = \"box" + str(count) + "\">\n"
+        urdf_str += "\t" * indent + "<parent link = \"box0\"/>\n"
+        urdf_str += "\t" * indent + "<child link = \"box" + str(count) + "\"/>\n"
         indent -=1
         urdf_str += "\t" * indent + "</joint>\n"
 
