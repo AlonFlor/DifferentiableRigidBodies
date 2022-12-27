@@ -975,32 +975,32 @@ def try_a_force_pair(shape_masses, shape_ground_frictions_in, first_force, secon
     return combined.velocity, combined.angular_velocity[1]
 
 def find_balancing_external_force_pair(shape_masses, shape_ground_frictions_in, first_force_magn, component1, dir1, component2, dir2):
-    """Given a force, find the other force such that both forces pushing together cause no rotational motion. This requires trial and error"""
+    """Given a force, find the other force such that both forces pushing together cause no rotational motion. This requires trial and error, which will be done here via binary search"""
 
     second_force_magn = -1. * first_force_magn
     velocity_result, angular_velocity_result = try_a_force_pair(shape_masses, shape_ground_frictions_in, [first_force_magn, component1, dir1], [second_force_magn, component2, dir2])
-    left = second_force_magn, angular_velocity_result
+    left = second_force_magn, velocity_result, angular_velocity_result
 
     second_force_magn = 2. * first_force_magn
     velocity_result, angular_velocity_result = try_a_force_pair(shape_masses, shape_ground_frictions_in, [first_force_magn, component1, dir1], [second_force_magn, component2, dir2])
-    right = second_force_magn, angular_velocity_result
+    right = second_force_magn, velocity_result, angular_velocity_result
 
-    result = left if (np.abs(left[1]) < np.abs(right[1])) else right
+    result = left if (np.abs(left[2]) < np.abs(right[2])) else right
     count = 0
-    while np.abs(result[1]) > 1e-9:  # threshold
+    while np.abs(result[2]) > 1e-9:  # threshold
         second_force_magn = 0.5 * (left[0] + right[0])
         velocity_result, angular_velocity_result = try_a_force_pair(shape_masses, shape_ground_frictions_in, [first_force_magn, component1, dir1], [second_force_magn, component2, dir2])
-        center = second_force_magn, angular_velocity_result
+        center = second_force_magn, velocity_result, angular_velocity_result
 
         result = center
 
-        if center[1] * left[1] < 0:
+        if center[2] * left[2] < 0:
             right = center
         else:
             left = center
         count += 1
 
-    return result[0]
+    return result[0], result[1]
 def mass_and_center_of_mass_finder(shape_masses, shape_ground_frictions_in):
 
     #get locations
@@ -1023,14 +1023,19 @@ def mass_and_center_of_mass_finder(shape_masses, shape_ground_frictions_in):
     first_force_magns = []
     second_force_magns = []
 
+    forces = []
+    delta_velocities_divided_by_dt = []
+
     first_force_magn = 7000.
     limit = 2000
     stride = 100
 
     for i in np.arange(0, limit, stride):
-        second_force_magn = find_balancing_external_force_pair(shape_masses, shape_ground_frictions_in, first_force_magn, component1, dir1, component2, dir2)
+        second_force_magn, velocity_result = find_balancing_external_force_pair(shape_masses, shape_ground_frictions_in, first_force_magn, component1, dir1, component2, dir2)
         first_force_magns.append(first_force_magn)
         second_force_magns.append(second_force_magn)
+        forces.append(first_force_magn + second_force_magn)
+        delta_velocities_divided_by_dt.append(velocity_result[2] / dt)
         first_force_magn += stride
 
     #print("force magn pairs:\n", first_force_magns[0], second_force_magns[0], "\n", first_force_magns[1], second_force_magns[1])
@@ -1046,19 +1051,11 @@ def mass_and_center_of_mass_finder(shape_masses, shape_ground_frictions_in):
 
     actual_com_x_list = [actual_com_x]*len(com_pos_found_x_list)
     draw_data.plot_data_two_curves(first_force_magns[1:], com_pos_found_x_list, actual_com_x_list)
-
-    forces = []
-    delta_velocities_divided_by_dt = []
-    for i in np.arange(len(first_force_magns)):
-        velocity_result, angular_velocity_result = \
-            try_a_force_pair(shape_masses, shape_ground_frictions_in, [first_force_magns[i], component1, dir1], [second_force_magns[i], component2, dir2])
-        forces.append(first_force_magns[i] + second_force_magns[i])
-        delta_velocities_divided_by_dt.append(velocity_result[2] / dt)
     draw_data.plot_data(forces, delta_velocities_divided_by_dt)
-    velocity_regression_result = scipy.stats.linregress(forces, delta_velocities_divided_by_dt)
 
     print("center of mass x-axis result:", com_pos_found_x_list[len(com_pos_found_x_list)-1],"\n\n")
 
+    velocity_regression_result = scipy.stats.linregress(forces, delta_velocities_divided_by_dt)
     print("slope:", velocity_regression_result.slope)
     print("intercept:", velocity_regression_result.intercept)
 
