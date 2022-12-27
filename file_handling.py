@@ -214,13 +214,13 @@ def write_contacts_in_motion_script(shapes, shape_shape_contacts_low_level, grou
         motion_script.write("," + str(normal[1]))
         motion_script.write("," + str(normal[2]))
 
-def write_external_force_info_in_motion_script(external_force_magn, external_force_contact_location, direction_x, motion_script):
+def write_external_force_info_in_motion_script(external_force_magn, external_force_contact_location, direction_z, motion_script):
     motion_script.write(",external_force")
     motion_script.write(","+str(external_force_magn))
     motion_script.write(","+str(external_force_contact_location[0]))
     motion_script.write(","+str(external_force_contact_location[1]))
     motion_script.write(","+str(external_force_contact_location[2]))
-    motion_script.write(","+str(direction_x))
+    motion_script.write(","+str(direction_z))
     motion_script.write("\n")
 
 

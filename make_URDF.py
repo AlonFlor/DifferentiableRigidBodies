@@ -17,7 +17,7 @@ for count,coord_list in enumerate(obj):
 
     urdf_str += "\t" * indent + "<visual>\n"
     indent +=1
-    urdf_str += "\t" * indent + "<origin xyz(\"" + str(x) + " " + str(y) + " " + str(z) + "\")/>\n"
+    urdf_str += "\t" * indent + "<origin xyz=\"" + str(x) + " " + str(y) + " " + str(z) + "\"/>\n"
     urdf_str += "\t" * indent + "<geometry>\n"
     indent +=1
     urdf_str += "\t" * indent + "<box size = \"1 1 1\"/>\n"
@@ -28,7 +28,7 @@ for count,coord_list in enumerate(obj):
 
     urdf_str += "\t" * indent + "<collision>\n"
     indent +=1
-    urdf_str += "\t" * indent + "<origin xyz(\"" + str(x) + " " + str(y) + " " + str(z) + "\")/>\n"
+    urdf_str += "\t" * indent + "<origin xyz=\"" + str(x) + " " + str(y) + " " + str(z) + "\"/>\n"
     urdf_str += "\t" * indent + "<geometry>\n"
     indent +=1
     urdf_str += "\t" * indent + "<box size = \"1 1 1\"/>\n"
@@ -42,7 +42,7 @@ for count,coord_list in enumerate(obj):
     urdf_str += "\t" * indent + "<mass value = \"1\"/>\n"
     urdf_str += "\t" * indent + "<friction value = \"0.1\"/>\n"
     urdf_str += "\t" * indent + "<inertia ixx=\""+str(1./6.)+"\" ixy=\"0.0\" ixz=\"0.0\" iyy=\""+str(1./6.)+"\" iyz=\"0.0\" izz=\""+str(1./6.)+"\"/>\n"
-    urdf_str += "\t" * indent + "<origin xyz(\"" + str(x) + " " + str(y) + " " + str(z) + "\")/>\n"
+    urdf_str += "\t" * indent + "<origin xyz=\"" + str(x) + " " + str(y) + " " + str(z) + "\"/>\n"
     indent -=1
     urdf_str += "\t" * indent + "</inertial>\n"
 
