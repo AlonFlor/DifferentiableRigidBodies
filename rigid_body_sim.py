@@ -977,20 +977,38 @@ def try_a_force_pair(shape_masses, shape_ground_frictions_in, first_force, secon
 def find_balancing_external_force_pair(shape_masses, shape_ground_frictions_in, first_force_magn, component1, dir1, component2, dir2):
     """Given a force, find the other force such that both forces pushing together cause no rotational motion. This requires trial and error, which will be done here via binary search"""
 
+    force_magn_pairs_found = []
+    angular_velocity_changes_found = []
+
+    #get initial left part of binary search
     second_force_magn = -1. * first_force_magn
     velocity_result, angular_velocity_result = try_a_force_pair(shape_masses, shape_ground_frictions_in, [first_force_magn, component1, dir1], [second_force_magn, component2, dir2])
     left = second_force_magn, velocity_result, angular_velocity_result
 
+    #record results for later
+    force_magn_pairs_found.append((first_force_magn, second_force_magn))
+    angular_velocity_changes_found.append(angular_velocity_result)
+
+    #get initial right part of binary search
     second_force_magn = 2. * first_force_magn
     velocity_result, angular_velocity_result = try_a_force_pair(shape_masses, shape_ground_frictions_in, [first_force_magn, component1, dir1], [second_force_magn, component2, dir2])
     right = second_force_magn, velocity_result, angular_velocity_result
 
+    #record results for later
+    force_magn_pairs_found.append((first_force_magn, second_force_magn))
+    angular_velocity_changes_found.append(angular_velocity_result)
+
+    #do the binary search
     result = left if (np.abs(left[2]) < np.abs(right[2])) else right
     count = 0
     while np.abs(result[2]) > 1e-9:  # threshold
         second_force_magn = 0.5 * (left[0] + right[0])
         velocity_result, angular_velocity_result = try_a_force_pair(shape_masses, shape_ground_frictions_in, [first_force_magn, component1, dir1], [second_force_magn, component2, dir2])
         center = second_force_magn, velocity_result, angular_velocity_result
+
+        # record results for later
+        force_magn_pairs_found.append((first_force_magn, second_force_magn))
+        angular_velocity_changes_found.append(angular_velocity_result)
 
         result = center
 
@@ -1000,8 +1018,8 @@ def find_balancing_external_force_pair(shape_masses, shape_ground_frictions_in, 
             left = center
         count += 1
 
-    return result[0], result[1]
-def mass_and_center_of_mass_finder(shape_masses, shape_ground_frictions_in):
+    return result[0], result[1], force_magn_pairs_found, angular_velocity_changes_found
+def mass_moments_finder(shape_masses, shape_ground_frictions_in):
 
     #get locations
     component1 = 2
@@ -1011,50 +1029,65 @@ def mass_and_center_of_mass_finder(shape_masses, shape_ground_frictions_in):
     shapes, shape_shape_frictions, shape_ground_frictions, combined = make_shapes(shape_masses, shape_ground_frictions_in)      # make shapes
     external_force_contact_location_first_force = geometry_utils.to_world_coords(combined.components[component1], combined.components[component1].vertices[0]) * np.array([1., 0., 1.])
     first_force_rx = external_force_contact_location_first_force[0]
-    first_force_rz = external_force_contact_location_first_force[2]
+    #first_force_rz = external_force_contact_location_first_force[2]
     shapes, shape_shape_frictions, shape_ground_frictions, combined = make_shapes(shape_masses, shape_ground_frictions_in)      # make shapes
     external_force_contact_location_second_force = geometry_utils.to_world_coords(combined.components[component2], combined.components[component2].vertices[0]) * np.array([1., 0., 1.])
     second_force_rx = external_force_contact_location_second_force[0]
-    second_force_rz = external_force_contact_location_second_force[2]
+    #second_force_rz = external_force_contact_location_second_force[2]
     second_to_first_force_rx = first_force_rx - second_force_rx
-    second_to_first_force_rz = first_force_rz - second_force_rz
+    #second_to_first_force_rz = first_force_rz - second_force_rz
 
-
+    #magnitudes of the force at each location
     first_force_magns = []
     second_force_magns = []
 
+    #info for getting mass
     forces = []
     delta_velocities_divided_by_dt = []
+
+    #info for getting moment of inertia
+    force_magn_pairs = []
+    angular_velocity_changes_divided_by_dt = []
 
     first_force_magn = 7000.
     limit = 2000
     stride = 100
 
     for i in np.arange(0, limit, stride):
-        second_force_magn, velocity_result = find_balancing_external_force_pair(shape_masses, shape_ground_frictions_in, first_force_magn, component1, dir1, component2, dir2)
+        second_force_magn, velocity_result, force_magn_pairs_found, angular_velocity_changes_found = \
+            find_balancing_external_force_pair(shape_masses, shape_ground_frictions_in, first_force_magn, component1, dir1, component2, dir2)
         first_force_magns.append(first_force_magn)
         second_force_magns.append(second_force_magn)
         forces.append(first_force_magn + second_force_magn)
         delta_velocities_divided_by_dt.append(velocity_result[2] / dt)
+        force_magn_pairs += force_magn_pairs_found
+        for angular_velocity_change in angular_velocity_changes_found:
+            angular_velocity_changes_divided_by_dt.append(angular_velocity_change / dt)
         first_force_magn += stride
 
     #print("force magn pairs:\n", first_force_magns[0], second_force_magns[0], "\n", first_force_magns[1], second_force_magns[1])
 
+    #get com x coord
     com_pos_found_x_list = []
     end = len(first_force_magns) - 1
     for i in np.arange(end):
         com_to_first_force_rx = second_to_first_force_rx * (second_force_magns[end] - second_force_magns[i]) / (first_force_magns[end] - first_force_magns[i] + second_force_magns[end] - second_force_magns[i])
         com_pos_found_x = first_force_rx - com_to_first_force_rx
         com_pos_found_x_list.append(com_pos_found_x)
-    shapes, shape_shape_frictions, shape_ground_frictions, combined = make_shapes(shape_masses, shape_ground_frictions_in)  # make shapes
+    shapes, shape_shape_frictions, shape_ground_frictions, combined = make_shapes(shape_masses, shape_ground_frictions_in)  # basically, reset shapes
     actual_com_x = geometry_utils.to_world_coords(combined, combined.COM)[0]
 
     actual_com_x_list = [actual_com_x]*len(com_pos_found_x_list)
     draw_data.plot_data_two_curves(first_force_magns[1:], com_pos_found_x_list, actual_com_x_list)
     draw_data.plot_data(forces, delta_velocities_divided_by_dt)
 
-    print("center of mass x-axis result:", com_pos_found_x_list[len(com_pos_found_x_list)-1],"\n\n")
+    print("center of mass x-axis result:")
+    print("\t",com_pos_found_x_list[len(com_pos_found_x_list)-1])
+    print("actual value:")
+    print("\t", actual_com_x)
 
+    #get mass
+    print("\n\n\n\nprocessing mass")
     velocity_regression_result = scipy.stats.linregress(forces, delta_velocities_divided_by_dt)
     print("slope:", velocity_regression_result.slope)
     print("intercept:", velocity_regression_result.intercept)
@@ -1062,9 +1095,25 @@ def mass_and_center_of_mass_finder(shape_masses, shape_ground_frictions_in):
     print("mass result:", 1./velocity_regression_result.slope)
     print("translational mu result:", velocity_regression_result.intercept/-9.8)
 
-    print("actual values:")
-    print("\tcenter of mass x-axis:", actual_com_x)
-    print("\tmass:", combined.mass)
+    print("actual mass value:")
+    print("\t", combined.mass)
+
+    print("\n\n\n\nprocessing moment of inertia using known center of mass (assuming we got the other part of it by moving the object along the x-axis)")
+    pushing_torques = []
+    com_to_first_force = external_force_contact_location_first_force - geometry_utils.to_world_coords(combined, combined.COM)
+    com_to_second_force = external_force_contact_location_second_force - geometry_utils.to_world_coords(combined, combined.COM)
+    for force_magn_pair in force_magn_pairs:
+        first_force_magn, second_force_magn = force_magn_pair
+        pushing_torques.append(np.cross(com_to_first_force, np.array([0., 0., dir1*first_force_magn]))[1] + np.cross(com_to_second_force, np.array([0., 0., dir2*second_force_magn]))[1])
+    angular_velocity_regression_result = scipy.stats.linregress(pushing_torques, angular_velocity_changes_divided_by_dt)
+    print("slope:", angular_velocity_regression_result.slope)
+    print("intercept:", angular_velocity_regression_result.intercept)
+
+    print("moment of inertia result:", 1./angular_velocity_regression_result.slope)
+    print("intercept should be at the origin.\n")
+    print("actual moment of inertia value:")
+    print("\t",combined.I[1][1])
+
 
 
 def ordinary_run(shape_masses, shape_ground_frictions_in, motion_script = None):
@@ -1124,7 +1173,7 @@ temp_mass_values = np.concatenate((np.array([8.]*32), np.array([2.]*56)))
 time_step = 100
 #motion_script = file_handling.read_motion_script_file(os.path.join("test1","motion_script.csv"))
 
-mass_and_center_of_mass_finder(actual_mass_values, actual_mu_values)
+mass_moments_finder(actual_mass_values, actual_mu_values)
 #ordinary_run(actual_mass_values, actual_mu_values)
 #ordinary_run(actual_mass_values, actual_mu_values, motion_script=motion_script)
 #run_derivatives_sweep(1, False, masses, motion_script, time_step, temp_mass_values, temp_friction_values)
