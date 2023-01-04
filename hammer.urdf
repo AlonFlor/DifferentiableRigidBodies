@@ -1,0 +1,2110 @@
+<robot name = "hammer">
+	<link name = "box0">
+		<visual>
+			<origin xyz="0.0 0.0 0.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0.0 0.0 0.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="0.0 0.0 0.0"/>
+		</inertial>
+	</link>
+	<link name = "box1">
+		<visual>
+			<origin xyz="1.0 0.0 0.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="1.0 0.0 0.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="1.0 0.0 0.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint1" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box1"/>
+	</joint>
+	<link name = "box2">
+		<visual>
+			<origin xyz="0.0 0.0 1.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0.0 0.0 1.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="0.0 0.0 1.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint2" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box2"/>
+	</joint>
+	<link name = "box3">
+		<visual>
+			<origin xyz="1.0 0.0 1.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="1.0 0.0 1.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="1.0 0.0 1.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint3" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box3"/>
+	</joint>
+	<link name = "box4">
+		<visual>
+			<origin xyz="0.0 0.0 2.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0.0 0.0 2.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="0.0 0.0 2.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint4" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box4"/>
+	</joint>
+	<link name = "box5">
+		<visual>
+			<origin xyz="1.0 0.0 2.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="1.0 0.0 2.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="1.0 0.0 2.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint5" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box5"/>
+	</joint>
+	<link name = "box6">
+		<visual>
+			<origin xyz="0.0 0.0 3.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0.0 0.0 3.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="0.0 0.0 3.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint6" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box6"/>
+	</joint>
+	<link name = "box7">
+		<visual>
+			<origin xyz="1.0 0.0 3.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="1.0 0.0 3.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="1.0 0.0 3.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint7" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box7"/>
+	</joint>
+	<link name = "box8">
+		<visual>
+			<origin xyz="0.0 0.0 4.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0.0 0.0 4.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="0.0 0.0 4.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint8" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box8"/>
+	</joint>
+	<link name = "box9">
+		<visual>
+			<origin xyz="1.0 0.0 4.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="1.0 0.0 4.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="1.0 0.0 4.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint9" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box9"/>
+	</joint>
+	<link name = "box10">
+		<visual>
+			<origin xyz="0.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="0.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint10" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box10"/>
+	</joint>
+	<link name = "box11">
+		<visual>
+			<origin xyz="1.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="1.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="1.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint11" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box11"/>
+	</joint>
+	<link name = "box12">
+		<visual>
+			<origin xyz="0.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="0.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint12" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box12"/>
+	</joint>
+	<link name = "box13">
+		<visual>
+			<origin xyz="1.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="1.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="1.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint13" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box13"/>
+	</joint>
+	<link name = "box14">
+		<visual>
+			<origin xyz="0.0 0.0 7.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0.0 0.0 7.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="0.0 0.0 7.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint14" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box14"/>
+	</joint>
+	<link name = "box15">
+		<visual>
+			<origin xyz="1.0 0.0 7.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="1.0 0.0 7.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="1.0 0.0 7.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint15" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box15"/>
+	</joint>
+	<link name = "box16">
+		<visual>
+			<origin xyz="0.0 0.0 8.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0.0 0.0 8.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="0.0 0.0 8.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint16" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box16"/>
+	</joint>
+	<link name = "box17">
+		<visual>
+			<origin xyz="1.0 0.0 8.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="1.0 0.0 8.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="1.0 0.0 8.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint17" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box17"/>
+	</joint>
+	<link name = "box18">
+		<visual>
+			<origin xyz="1.0 0.0 9.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="1.0 0.0 9.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="1.0 0.0 9.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint18" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box18"/>
+	</joint>
+	<link name = "box19">
+		<visual>
+			<origin xyz="2.0 0.0 4.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="2.0 0.0 4.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="2.0 0.0 4.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint19" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box19"/>
+	</joint>
+	<link name = "box20">
+		<visual>
+			<origin xyz="2.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="2.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="2.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint20" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box20"/>
+	</joint>
+	<link name = "box21">
+		<visual>
+			<origin xyz="2.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="2.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="2.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint21" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box21"/>
+	</joint>
+	<link name = "box22">
+		<visual>
+			<origin xyz="2.0 0.0 7.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="2.0 0.0 7.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="2.0 0.0 7.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint22" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box22"/>
+	</joint>
+	<link name = "box23">
+		<visual>
+			<origin xyz="2.0 0.0 8.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="2.0 0.0 8.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="2.0 0.0 8.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint23" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box23"/>
+	</joint>
+	<link name = "box24">
+		<visual>
+			<origin xyz="2.0 0.0 9.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="2.0 0.0 9.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="2.0 0.0 9.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint24" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box24"/>
+	</joint>
+	<link name = "box25">
+		<visual>
+			<origin xyz="2.0 0.0 10.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="2.0 0.0 10.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="2.0 0.0 10.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint25" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box25"/>
+	</joint>
+	<link name = "box26">
+		<visual>
+			<origin xyz="3.0 0.0 10.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="3.0 0.0 10.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="3.0 0.0 10.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint26" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box26"/>
+	</joint>
+	<link name = "box27">
+		<visual>
+			<origin xyz="4.0 0.0 11.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="4.0 0.0 11.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="4.0 0.0 11.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint27" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box27"/>
+	</joint>
+	<link name = "box28">
+		<visual>
+			<origin xyz="3.0 0.0 4.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="3.0 0.0 4.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="3.0 0.0 4.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint28" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box28"/>
+	</joint>
+	<link name = "box29">
+		<visual>
+			<origin xyz="3.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="3.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="3.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint29" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box29"/>
+	</joint>
+	<link name = "box30">
+		<visual>
+			<origin xyz="3.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="3.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="3.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint30" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box30"/>
+	</joint>
+	<link name = "box31">
+		<visual>
+			<origin xyz="3.0 0.0 7.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="3.0 0.0 7.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="3.0 0.0 7.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint31" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box31"/>
+	</joint>
+	<link name = "box32">
+		<visual>
+			<origin xyz="4.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="4.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="4.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint32" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box32"/>
+	</joint>
+	<link name = "box33">
+		<visual>
+			<origin xyz="4.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="4.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="4.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint33" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box33"/>
+	</joint>
+	<link name = "box34">
+		<visual>
+			<origin xyz="5.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="5.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="5.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint34" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box34"/>
+	</joint>
+	<link name = "box35">
+		<visual>
+			<origin xyz="5.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="5.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="5.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint35" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box35"/>
+	</joint>
+	<link name = "box36">
+		<visual>
+			<origin xyz="6.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="6.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="6.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint36" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box36"/>
+	</joint>
+	<link name = "box37">
+		<visual>
+			<origin xyz="6.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="6.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="6.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint37" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box37"/>
+	</joint>
+	<link name = "box38">
+		<visual>
+			<origin xyz="7.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="7.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="7.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint38" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box38"/>
+	</joint>
+	<link name = "box39">
+		<visual>
+			<origin xyz="7.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="7.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="7.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint39" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box39"/>
+	</joint>
+	<link name = "box40">
+		<visual>
+			<origin xyz="8.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="8.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="8.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint40" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box40"/>
+	</joint>
+	<link name = "box41">
+		<visual>
+			<origin xyz="8.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="8.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="8.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint41" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box41"/>
+	</joint>
+	<link name = "box42">
+		<visual>
+			<origin xyz="9.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="9.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="9.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint42" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box42"/>
+	</joint>
+	<link name = "box43">
+		<visual>
+			<origin xyz="9.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="9.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="9.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint43" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box43"/>
+	</joint>
+	<link name = "box44">
+		<visual>
+			<origin xyz="10.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="10.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="10.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint44" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box44"/>
+	</joint>
+	<link name = "box45">
+		<visual>
+			<origin xyz="10.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="10.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="10.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint45" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box45"/>
+	</joint>
+	<link name = "box46">
+		<visual>
+			<origin xyz="11.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="11.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="11.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint46" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box46"/>
+	</joint>
+	<link name = "box47">
+		<visual>
+			<origin xyz="11.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="11.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="11.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint47" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box47"/>
+	</joint>
+	<link name = "box48">
+		<visual>
+			<origin xyz="12.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="12.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="12.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint48" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box48"/>
+	</joint>
+	<link name = "box49">
+		<visual>
+			<origin xyz="12.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="12.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="12.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint49" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box49"/>
+	</joint>
+	<link name = "box50">
+		<visual>
+			<origin xyz="13.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="13.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="13.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint50" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box50"/>
+	</joint>
+	<link name = "box51">
+		<visual>
+			<origin xyz="13.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="13.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="13.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint51" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box51"/>
+	</joint>
+	<link name = "box52">
+		<visual>
+			<origin xyz="14.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="14.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="14.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint52" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box52"/>
+	</joint>
+	<link name = "box53">
+		<visual>
+			<origin xyz="14.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="14.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="14.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint53" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box53"/>
+	</joint>
+	<link name = "box54">
+		<visual>
+			<origin xyz="15.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="15.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="15.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint54" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box54"/>
+	</joint>
+	<link name = "box55">
+		<visual>
+			<origin xyz="15.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="15.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="15.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint55" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box55"/>
+	</joint>
+	<link name = "box56">
+		<visual>
+			<origin xyz="16.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="16.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="16.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint56" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box56"/>
+	</joint>
+	<link name = "box57">
+		<visual>
+			<origin xyz="16.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="16.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="16.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint57" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box57"/>
+	</joint>
+	<link name = "box58">
+		<visual>
+			<origin xyz="17.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="17.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="17.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint58" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box58"/>
+	</joint>
+	<link name = "box59">
+		<visual>
+			<origin xyz="17.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="17.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="17.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint59" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box59"/>
+	</joint>
+	<link name = "box60">
+		<visual>
+			<origin xyz="18.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="18.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="18.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint60" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box60"/>
+	</joint>
+	<link name = "box61">
+		<visual>
+			<origin xyz="18.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="18.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="18.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint61" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box61"/>
+	</joint>
+	<link name = "box62">
+		<visual>
+			<origin xyz="19.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="19.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="19.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint62" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box62"/>
+	</joint>
+	<link name = "box63">
+		<visual>
+			<origin xyz="19.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="19.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="19.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint63" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box63"/>
+	</joint>
+	<link name = "box64">
+		<visual>
+			<origin xyz="20.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="20.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="20.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint64" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box64"/>
+	</joint>
+	<link name = "box65">
+		<visual>
+			<origin xyz="20.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="20.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="20.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint65" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box65"/>
+	</joint>
+	<link name = "box66">
+		<visual>
+			<origin xyz="21.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="21.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="21.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint66" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box66"/>
+	</joint>
+	<link name = "box67">
+		<visual>
+			<origin xyz="21.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="21.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="21.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint67" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box67"/>
+	</joint>
+	<link name = "box68">
+		<visual>
+			<origin xyz="22.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="22.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="22.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint68" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box68"/>
+	</joint>
+	<link name = "box69">
+		<visual>
+			<origin xyz="22.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="22.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="22.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint69" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box69"/>
+	</joint>
+	<link name = "box70">
+		<visual>
+			<origin xyz="23.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="23.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="23.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint70" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box70"/>
+	</joint>
+	<link name = "box71">
+		<visual>
+			<origin xyz="23.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="23.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="23.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint71" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box71"/>
+	</joint>
+	<link name = "box72">
+		<visual>
+			<origin xyz="24.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="24.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="24.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint72" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box72"/>
+	</joint>
+	<link name = "box73">
+		<visual>
+			<origin xyz="24.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="24.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="24.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint73" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box73"/>
+	</joint>
+	<link name = "box74">
+		<visual>
+			<origin xyz="25.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="25.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="25.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint74" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box74"/>
+	</joint>
+	<link name = "box75">
+		<visual>
+			<origin xyz="25.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="25.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="25.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint75" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box75"/>
+	</joint>
+	<link name = "box76">
+		<visual>
+			<origin xyz="26.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="26.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="26.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint76" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box76"/>
+	</joint>
+	<link name = "box77">
+		<visual>
+			<origin xyz="26.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="26.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="26.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint77" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box77"/>
+	</joint>
+	<link name = "box78">
+		<visual>
+			<origin xyz="27.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="27.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="27.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint78" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box78"/>
+	</joint>
+	<link name = "box79">
+		<visual>
+			<origin xyz="27.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="27.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="27.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint79" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box79"/>
+	</joint>
+	<link name = "box80">
+		<visual>
+			<origin xyz="28.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="28.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="28.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint80" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box80"/>
+	</joint>
+	<link name = "box81">
+		<visual>
+			<origin xyz="28.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="28.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="28.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint81" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box81"/>
+	</joint>
+	<link name = "box82">
+		<visual>
+			<origin xyz="29.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="29.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="29.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint82" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box82"/>
+	</joint>
+	<link name = "box83">
+		<visual>
+			<origin xyz="29.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="29.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="29.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint83" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box83"/>
+	</joint>
+	<link name = "box84">
+		<visual>
+			<origin xyz="30.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="30.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="30.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint84" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box84"/>
+	</joint>
+	<link name = "box85">
+		<visual>
+			<origin xyz="30.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="30.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="30.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint85" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box85"/>
+	</joint>
+	<link name = "box86">
+		<visual>
+			<origin xyz="31.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="31.0 0.0 5.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="31.0 0.0 5.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint86" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box86"/>
+	</joint>
+	<link name = "box87">
+		<visual>
+			<origin xyz="31.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="31.0 0.0 6.0"/>
+			<geometry>
+				<box size = "1 1 1"/>
+			</geometry>
+		</collision>
+		<inertial>
+			<mass value = "1"/>
+			<friction value = "0.1"/>
+			<inertia ixx="0.16666666666666666" ixy="0.0" ixz="0.0" iyy="0.16666666666666666" iyz="0.0" izz="0.16666666666666666"/>
+			<origin xyz="31.0 0.0 6.0"/>
+		</inertial>
+	</link>
+	<joint name = "joint87" type = "fixed">
+		<parent link = "box0"/>
+		<child link = "box87"/>
+	</joint>
+</robot>
