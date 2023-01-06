@@ -364,6 +364,6 @@ def read_combined_boxes_rigid_body_file(file_loc):
     return info
 
 def write_urdf(object_name, urdf_str):
-    file = open(object_name+".urdf", "w", encoding="utf-8")
+    file = open("urdf and meshes\\"+object_name+".urdf", "w", encoding="utf-8")
     file.write(urdf_str)
     file.close()

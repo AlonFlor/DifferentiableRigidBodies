@@ -37,10 +37,17 @@ for count,coord_list in enumerate(obj):
     indent -=1
     urdf_str += "\t" * indent + "</collision>\n"
 
+    urdf_str += "\t" * indent + "<contact>\n"
+    indent += 1
+    urdf_str += "\t" * indent + "<lateral_friction value = \"1.\"/>\n"
+    indent -= 1
+    urdf_str += "\t" * indent + "</contact>\n"
+
+
     urdf_str += "\t" * indent + "<inertial>\n"
     indent +=1
     urdf_str += "\t" * indent + "<mass value = \"1\"/>\n"
-    urdf_str += "\t" * indent + "<friction value = \"0.1\"/>\n"
+    #urdf_str += "\t" * indent + "<friction value = \"0.1\"/>\n"
     urdf_str += "\t" * indent + "<inertia ixx=\""+str(1./6.)+"\" ixy=\"0.0\" ixz=\"0.0\" iyy=\""+str(1./6.)+"\" iyz=\"0.0\" izz=\""+str(1./6.)+"\"/>\n"
     urdf_str += "\t" * indent + "<origin xyz=\"" + str(x) + " " + str(y) + " " + str(z) + "\"/>\n"
     indent -=1
