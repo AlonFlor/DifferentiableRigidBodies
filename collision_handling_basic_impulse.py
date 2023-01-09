@@ -329,7 +329,7 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
         friction = friction_direction*min(relative_motion_friction_magn, mu_normal_friction_magn)
         print("friction",friction)
         shape_shape_apply_impulse(shape1, shape2, friction, r_1, r_2, I_inv_1, I_inv_2)'''
-    total_friction_magn = 0
+    total_friction = np.array([0., 0., 0.])
     for i in np.arange(len(ground_contacts)):
         normal_impulse_magn = np.linalg.norm(ground_contact_impulses[i])
         #print("normal_impulse_magn", normal_impulse_magn)
@@ -362,6 +362,7 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
             shape_ground_apply_impulse(shape.parent, friction, r_combined, I_inv_combined)
         else:
             shape_ground_apply_impulse(shape, friction, r, I_inv)
+        total_friction+=friction
 
         if find_derivatives:
             normal_impulse_magn_mass_derivatives = []
@@ -408,8 +409,8 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
             else:
                 shape_ground_apply_impulse_derivatives(shape, friction, r, I_inv, None, friction_mass_derivatives, one_shape_friction_I_inv_mass_derivatives, friction_mu_derivative)
 
-        total_friction_magn += min(relative_motion_friction_magn, mu_normal_friction_magn)
-    print("total_friction_magn",total_friction_magn)
+    print("total_friction",total_friction)
+    return total_friction
 
 def external_force_impulse(combined, external_force_magn, component_number, direction_z, dt, find_derivatives):
     # add external force collision
