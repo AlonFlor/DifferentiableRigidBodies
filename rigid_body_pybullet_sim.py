@@ -83,17 +83,24 @@ def run_pybullet_one_time_step(first_force,second_force):
 
 #p.setTimeStep()
 
-def get_actual_mass_and_com():
+def get_actual_mass_com_and_moment_of_inertia():
     count = 1
-    mass = 1.
-    loc_weighed_mass = np.array(list(p.getBasePositionAndOrientation(objectID)[0]))
-    for i in range(p.getNumJoints(objectID)):
+    mass = 1. #base mass
+    loc_weighed_mass = np.array(list(p.getBasePositionAndOrientation(objectID)[0])) #base location
+    num_links = p.getNumJoints(objectID) #excludes base
+    for i in range(num_links):
         this_mass = 1.#p.getDynamicsInfo(objectID, -1)[0]
         this_loc = p.getLinkState(objectID, i)[0]
         mass += this_mass
         loc_weighed_mass += np.array(list(this_loc))*this_mass
         count += 1
-    return mass, loc_weighed_mass/count
+    com = loc_weighed_mass/count
+
+    I = 1./6. + 1*(np.linalg.norm(np.array(list(p.getBasePositionAndOrientation(objectID)[0])) - com)**2)
+    for i in range(num_links):
+        I += 1./6. + 1*(np.linalg.norm(p.getLinkState(objectID, i)[0] - com) ** 2)
+
+    return mass, com, I
 
 
 def try_a_force_pair(first_force, second_force):
@@ -221,7 +228,7 @@ def mass_moments_finder():
         com_pos_found_x = first_force_rx - com_to_first_force_rx
         com_pos_found_x_list.append(com_pos_found_x)
 
-    actual_mass, actual_com = get_actual_mass_and_com()
+    actual_mass, actual_com, actual_I = get_actual_mass_com_and_moment_of_inertia()
     actual_com_x_list = [actual_com[0]]*len(com_pos_found_x_list)
 
     #draw stuff
@@ -273,8 +280,8 @@ def mass_moments_finder():
 
     print("moment of inertia result:", 1./angular_velocity_regression_result.slope)
     print("intercept should be at the origin.\n")
-    #print("actual moment of inertia value:")
-    #print("\t",combined.I[1][1])
+    print("actual moment of inertia value:")
+    print("\t",actual_I)
 
 mass_moments_finder()
 
