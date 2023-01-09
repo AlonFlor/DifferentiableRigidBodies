@@ -223,21 +223,22 @@ def mass_moments_finder():
     print("actual mass value:")
     print("\t", actual_mass)
 
-    '''print("\n\n\n\nprocessing moment of inertia using known center of mass (assuming we got the other part of it by moving the object along the x-axis)")
+    print("\n\n\n\nprocessing moment of inertia using known center of mass (assuming we got the other part of it by moving the object along the x-axis)")
     pushing_torques = []
-    com_to_first_force = external_force_contact_location_first_force - geometry_utils.to_world_coords(combined, combined.COM)
-    com_to_second_force = external_force_contact_location_second_force - geometry_utils.to_world_coords(combined, combined.COM)
+    com_to_first_force = np.array(list(external_force_contact_location_first_force)) - actual_com
+    com_to_second_force = np.array(list(external_force_contact_location_second_force)) - actual_com
     for force_magn_pair in force_magn_pairs:
         first_force_magn, second_force_magn = force_magn_pair
-        pushing_torques.append(np.cross(com_to_first_force, np.array([0., 0., dir1*first_force_magn]))[1] + np.cross(com_to_second_force, np.array([0., 0., dir2*second_force_magn]))[1])
+        pushing_torques.append(np.cross(com_to_first_force, np.array([dir1[0]*first_force_magn, dir1[1]*first_force_magn, dir1[2]*first_force_magn]))[2] +
+                               np.cross(com_to_second_force, np.array([dir2[0]*second_force_magn, dir2[1]*second_force_magn, dir2[2]*second_force_magn]))[2])
     angular_velocity_regression_result = scipy.stats.linregress(pushing_torques, angular_velocity_changes_divided_by_dt)
     print("slope:", angular_velocity_regression_result.slope)
     print("intercept:", angular_velocity_regression_result.intercept)
 
     print("moment of inertia result:", 1./angular_velocity_regression_result.slope)
     print("intercept should be at the origin.\n")
-    print("actual moment of inertia value:")
-    print("\t",combined.I[1][1])'''
+    #print("actual moment of inertia value:")
+    #print("\t",combined.I[1][1])
 
 mass_moments_finder()
 
