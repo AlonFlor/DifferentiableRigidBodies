@@ -412,7 +412,7 @@ def handle_collisions_using_impulses(shapes, ground_contacts_low_level, find_der
     print("total_friction",total_friction)
     return total_friction
 
-def external_force_impulse(combined, external_force_magn, component_number, direction_z, dt, find_derivatives):
+def external_force_impulse(combined, external_force_magn, component_number, direction, dt, find_derivatives):
     # add external force collision
     '''
     # get first vertex on the first collision shape with the smallest x coord
@@ -428,7 +428,7 @@ def external_force_impulse(combined, external_force_magn, component_number, dire
     # contact is at the center of mass along the y-axis (height)
     external_force_contact_location = geometry_utils.to_world_coords(combined.components[component_number], combined.components[component_number].vertices[0]) * np.array([1., 0., 1.])
     external_force_contact_location[1] = combined.components[component_number].location[1]
-    external_force_direction = np.array([0., 0., direction_z])
+    external_force_direction = np.array(direction)
     external_force_impulse_magn = external_force_magn * dt
     external_force_impulse = external_force_impulse_magn*external_force_direction
 

@@ -102,6 +102,7 @@ def get_actual_mass_com_and_moment_of_inertia():
 
     return mass, com, I
 
+actual_mass, actual_com, actual_I = get_actual_mass_com_and_moment_of_inertia() #global values
 
 def try_a_force_pair(first_force, second_force):
     print("trying a force pair")
@@ -163,29 +164,16 @@ def find_balancing_external_force_pair(first_force_magn, pos1, dir1, pos2, dir2)
     return result[0], result[1], force_magn_pairs_found, angular_velocity_changes_found, frictions
 
 
-def mass_moments_finder():
-
-    #get locations
-    pos1 = (0., 0., 0.5)
-    dir1 = (0., 1., 0.)
-    pos2 = (20., 0., 0.5)
-    dir2 = (0., 1., 0.)
-    external_force_contact_location_first_force = pos1
-    first_force_rx = external_force_contact_location_first_force[0]
-    
-    external_force_contact_location_second_force = pos2
-    second_force_rx = external_force_contact_location_second_force[0]
-    second_to_first_force_rx = first_force_rx - second_force_rx
-
-    #magnitudes of the force at each location
+def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second_to_first_force_along_axis, velocity_axis):
+    # magnitudes of the force at each location
     first_force_magns = []
     second_force_magns = []
 
-    #info for getting mass
+    # info for getting mass
     forces = []
     delta_velocities_divided_by_dt = []
 
-    #info for getting moment of inertia
+    # info for getting moment of inertia
     force_magn_pairs = []
     angular_velocity_changes_divided_by_dt = []
 
@@ -193,7 +181,7 @@ def mass_moments_finder():
     limit = 2000
     stride = 100
 
-    #friction info. Friction should be constant across all rounds
+    # friction info. Friction should be constant across all rounds
     frictions = []
     translation_only_motion_frictions = []
 
@@ -203,13 +191,13 @@ def mass_moments_finder():
         second_force_magn, velocity_result, force_magn_pairs_found, angular_velocity_changes_found, frictions_result = \
             find_balancing_external_force_pair(first_force_magn, pos1, dir1, pos2, dir2)
 
-        #add data for translation-only motion
+        # add data for translation-only motion
         first_force_magns.append(first_force_magn)
         second_force_magns.append(second_force_magn)
         forces.append(first_force_magn + second_force_magn)
-        delta_velocities_divided_by_dt.append(velocity_result[1] / dt)
+        delta_velocities_divided_by_dt.append(velocity_result[velocity_axis] / dt)
 
-        #add data for motion in general
+        # add data for motion in general
         translation_only_motion_frictions.append(frictions_result[-1])
         frictions += frictions_result
         force_magn_pairs += force_magn_pairs_found
@@ -217,23 +205,21 @@ def mass_moments_finder():
             angular_velocity_changes_divided_by_dt.append(angular_velocity_change / dt)
         first_force_magn += stride
 
-    #print("force magn pairs:\n", first_force_magns[0], second_force_magns[0], "\n", first_force_magns[1], second_force_magns[1])
+    # print("force magn pairs:\n", first_force_magns[0], second_force_magns[0], "\n", first_force_magns[1], second_force_magns[1])
 
-    #get com x coord
-    com_pos_found_x_list = []
+    # get com coord along axis
+    com_pos_found_along_axis_list = []
     end = len(first_force_magns) - 1
     for i in np.arange(end):
-        com_to_first_force_rx = \
-            second_to_first_force_rx * (second_force_magns[end] - second_force_magns[i]) / (first_force_magns[end] - first_force_magns[i] + second_force_magns[end] - second_force_magns[i])
-        com_pos_found_x = first_force_rx - com_to_first_force_rx
-        com_pos_found_x_list.append(com_pos_found_x)
+        com_to_first_force_along_axis = second_to_first_force_along_axis * \
+                                        (second_force_magns[end] - second_force_magns[i]) / (first_force_magns[end] - first_force_magns[i] + second_force_magns[end] - second_force_magns[i])
+        com_pos_found_along_axis = first_force_along_axis - com_to_first_force_along_axis
+        com_pos_found_along_axis_list.append(com_pos_found_along_axis)
 
-    actual_mass, actual_com, actual_I = get_actual_mass_com_and_moment_of_inertia()
-    actual_com_x_list = [actual_com[0]]*len(com_pos_found_x_list)
-
-    #draw stuff
-    draw_data.plot_data_two_curves(first_force_magns[1:], com_pos_found_x_list, actual_com_x_list)
-    draw_data.plot_data(forces, delta_velocities_divided_by_dt)
+    # draw stuff
+    #actual_com_along_axis_list = [actual_com[0]] * len(com_pos_found_along_axis_list)
+    #draw_data.plot_data_two_curves(first_force_magns[1:], com_pos_found_along_axis_list, actual_com_along_axis_list)
+    #draw_data.plot_data(forces, delta_velocities_divided_by_dt)
     print("drawing friction-related stuff")
     translation_only_motion_frictions_x = []
     translation_only_motion_frictions_y = []
@@ -249,24 +235,74 @@ def mass_moments_finder():
     print("\tfriction magnitude")
     draw_data.plot_data(first_force_magns, translation_only_motion_frictions_magn)
 
-    print("\n\ncenter of mass x-axis result:")
-    print("\t",com_pos_found_x_list[len(com_pos_found_x_list)-1])
-    print("actual value:")
-    print("\t", actual_com[0])
-
-    #get mass
+    # get mass
     print("\n\nprocessing mass")
     velocity_regression_result = scipy.stats.linregress(forces, delta_velocities_divided_by_dt)
     print("slope:", velocity_regression_result.slope)
     print("intercept:", velocity_regression_result.intercept)
 
-    print("mass result:", 1./velocity_regression_result.slope)
-    print("translational mu result:", velocity_regression_result.intercept/-9.8)
+    print("mass result:", 1. / velocity_regression_result.slope)
+    print("translational mu result:", velocity_regression_result.intercept / -9.8)
 
     print("actual mass value:")
     print("\t", actual_mass)
+    # return the com for this axis, the force magnitude pairs, and the angular velocities divided by dt
+    return com_pos_found_along_axis_list[len(com_pos_found_along_axis_list) - 1], force_magn_pairs, angular_velocity_changes_divided_by_dt
+def mass_moments_finder():
 
-    print("\n\n\n\nprocessing moment of inertia using known center of mass (assuming we got the other part of it by moving the object along the x-axis)")
+    #get locations
+    pos1 = (0., 0., 0.5)
+    dir1 = (0., 1., 0.)
+    pos2 = (20., 0., 0.5)
+    dir2 = (0., 1., 0.)
+    external_force_contact_location_first_force = pos1
+    first_force_rx = external_force_contact_location_first_force[0]
+    
+    external_force_contact_location_second_force = pos2
+    second_force_rx = external_force_contact_location_second_force[0]
+    second_to_first_force_rx = first_force_rx - second_force_rx
+
+    com_x, force_magn_pairs, angular_velocity_changes_divided_by_dt = \
+        mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_rx, second_to_first_force_rx, 1)
+
+    #third force and fourth forces
+    third_force_ry = external_force_contact_location_first_force[1]
+    dir3 = (1., 0., 0.)
+    dir4 = (1., 0., 0.)
+    pos4 = (4., 11., 0.5)
+    external_force_contact_location_fourth_force = pos4
+    fourth_force_ry = external_force_contact_location_fourth_force[1]
+    fourth_to_third_force_ry = third_force_ry - fourth_force_ry
+
+    com_y, force_magn_pairs_unused, angular_velocity_changes_divided_by_dt_unused = \
+        mass_and_com_one_axis(pos1, dir3, pos4, dir4, third_force_ry, fourth_to_third_force_ry, 0)
+
+    print("\n\ncenter of mass result:")
+    print("\t", com_x, com_y)
+    print("actual value:")
+    print("\t", actual_com[0], actual_com[1])
+
+
+    print("\n\n\n\nprocessing moment of inertia using the found center of mass")
+    pushing_torques = []
+    found_com = np.array([com_x, com_y, external_force_contact_location_first_force[2]])
+    com_to_first_force = np.array(list(external_force_contact_location_first_force)) - found_com
+    com_to_second_force = np.array(list(external_force_contact_location_second_force)) - found_com
+    for force_magn_pair in force_magn_pairs:
+        first_force_magn, second_force_magn = force_magn_pair
+        pushing_torques.append(np.cross(com_to_first_force, np.array([dir1[0]*first_force_magn, dir1[1]*first_force_magn, dir1[2]*first_force_magn]))[2] +
+                               np.cross(com_to_second_force, np.array([dir2[0]*second_force_magn, dir2[1]*second_force_magn, dir2[2]*second_force_magn]))[2])
+    angular_velocity_regression_result = scipy.stats.linregress(pushing_torques, angular_velocity_changes_divided_by_dt)
+    print("slope:", angular_velocity_regression_result.slope)
+    print("intercept:", angular_velocity_regression_result.intercept)
+
+    print("moment of inertia result:", 1./angular_velocity_regression_result.slope)
+    print("intercept should be at the origin.\n")
+    print("actual moment of inertia value:")
+    print("\t",actual_I)
+
+
+    print("\n\n\n\nprocessing moment of inertia using the actual center of mass")
     pushing_torques = []
     com_to_first_force = np.array(list(external_force_contact_location_first_force)) - actual_com
     com_to_second_force = np.array(list(external_force_contact_location_second_force)) - actual_com
