@@ -2,6 +2,7 @@ import pybullet as p
 import numpy as np
 #import draw_data
 import scipy
+import os
 
 import time
 
@@ -108,10 +109,28 @@ def try_a_force_pair(first_force, second_force):
     print("trying a force pair")
     velocity, angular_velocity, friction = run_pybullet_one_time_step(first_force, second_force)
 
-    return velocity, angular_velocity[2], friction
+    #record the sample
+    push_sample = ""
+    first_force_dir_magn, first_force_pos = first_force
+    second_force_dir_magn, second_force_pos = second_force
+    push_sample += "\n"
+    push_sample += str(first_force_pos[0])
+    push_sample += "," + str(first_force_pos[1])
+    push_sample += "," + str(second_force_pos[0])
+    push_sample += "," + str(second_force_pos[1])
+    push_sample += "," + str(first_force_dir_magn[0])
+    push_sample += "," + str(first_force_dir_magn[1])
+    push_sample += "," + str(second_force_dir_magn[0])
+    push_sample += "," + str(second_force_dir_magn[1])
+    push_sample += "," + str(velocity[0])
+    push_sample += "," + str(velocity[1])
+    push_sample += "," + str(angular_velocity[2])
+
+    return velocity, angular_velocity[2], friction, push_sample
 
 def find_balancing_external_force_pair(first_force_magn, pos1, dir1, pos2, dir2):
     """Given a force, find the other force such that both forces pushing together cause no rotational motion. This requires trial and error, which will be done here via binary search"""
+    push_samples = ""
 
     force_magn_pairs_found = []
     angular_velocity_changes_found = []
@@ -119,8 +138,9 @@ def find_balancing_external_force_pair(first_force_magn, pos1, dir1, pos2, dir2)
 
     #get initial left part of binary search
     second_force_magn = -1. * first_force_magn
-    velocity_result, angular_velocity_result, friction = try_a_force_pair([(dir1[0]*first_force_magn, dir1[1]*first_force_magn, dir1[2]*first_force_magn), pos1],
+    velocity_result, angular_velocity_result, friction, push_sample = try_a_force_pair([(dir1[0]*first_force_magn, dir1[1]*first_force_magn, dir1[2]*first_force_magn), pos1],
                                                                 [(dir2[0]*second_force_magn, dir2[1]*second_force_magn, dir2[2]*second_force_magn), pos2])
+    push_samples += push_sample
     left = second_force_magn, velocity_result, angular_velocity_result
 
     #record results for later
@@ -130,8 +150,9 @@ def find_balancing_external_force_pair(first_force_magn, pos1, dir1, pos2, dir2)
 
     #get initial right part of binary search
     second_force_magn = 2. * first_force_magn
-    velocity_result, angular_velocity_result, friction = try_a_force_pair([(dir1[0]*first_force_magn, dir1[1]*first_force_magn, dir1[2]*first_force_magn), pos1],
+    velocity_result, angular_velocity_result, friction, push_sample = try_a_force_pair([(dir1[0]*first_force_magn, dir1[1]*first_force_magn, dir1[2]*first_force_magn), pos1],
                                                                 [(dir2[0]*second_force_magn, dir2[1]*second_force_magn, dir2[2]*second_force_magn), pos2])
+    push_samples += push_sample
     right = second_force_magn, velocity_result, angular_velocity_result
 
     #record results for later
@@ -144,8 +165,9 @@ def find_balancing_external_force_pair(first_force_magn, pos1, dir1, pos2, dir2)
     count = 0
     while np.abs(result[2]) > 1e-9:  # threshold
         second_force_magn = 0.5 * (left[0] + right[0])
-        velocity_result, angular_velocity_result, friction = try_a_force_pair([(dir1[0]*first_force_magn, dir1[1]*first_force_magn, dir1[2]*first_force_magn), pos1],
+        velocity_result, angular_velocity_result, friction, push_sample = try_a_force_pair([(dir1[0]*first_force_magn, dir1[1]*first_force_magn, dir1[2]*first_force_magn), pos1],
                                                                     [(dir2[0]*second_force_magn, dir2[1]*second_force_magn, dir2[2]*second_force_magn), pos2])
+        push_samples += push_sample
         center = second_force_magn, velocity_result, angular_velocity_result
 
         # record results for later
@@ -161,10 +183,12 @@ def find_balancing_external_force_pair(first_force_magn, pos1, dir1, pos2, dir2)
             left = center
         count += 1
 
-    return result[0], result[1], force_magn_pairs_found, angular_velocity_changes_found, frictions
+    return result[0], result[1], force_magn_pairs_found, angular_velocity_changes_found, frictions, push_samples
 
 
 def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second_to_first_force_along_axis, velocity_axis, result_string):
+    push_samples = ""
+
     # magnitudes of the force at each location
     first_force_magns = []
     second_force_magns = []
@@ -186,8 +210,9 @@ def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second
     translation_only_motion_frictions = []
 
     for i in np.arange(0, limit, stride):
-        second_force_magn, velocity_result, force_magn_pairs_found, angular_velocity_changes_found, frictions_result = \
+        second_force_magn, velocity_result, force_magn_pairs_found, angular_velocity_changes_found, frictions_result, push_samples_result = \
             find_balancing_external_force_pair(first_force_magn, pos1, dir1, pos2, dir2)
+        push_samples += push_samples_result
 
         # add data for translation-only motion
         first_force_magns.append(first_force_magn)
@@ -251,10 +276,11 @@ def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second
     result_string += "\nactual mass value: " + str(actual_mass)
     print("\t", actual_mass)
     # return the com for this axis, the force magnitude pairs, and the angular velocities divided by dt
-    return com_pos_found_along_axis_list[len(com_pos_found_along_axis_list) - 1], force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string
+    return com_pos_found_along_axis_list[len(com_pos_found_along_axis_list) - 1], force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string, push_samples
 def mass_moments_finder():
 
     result_string = ""
+    push_samples = ""
 
     #get locations
     pos1 = (0., 0., 0.5)
@@ -268,10 +294,11 @@ def mass_moments_finder():
     second_force_rx = external_force_contact_location_second_force[0]
     second_to_first_force_rx = first_force_rx - second_force_rx
 
-    result_string += "\npushing along y axis"
-    com_x, force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string_1 = \
+    result_string += "pushing along y axis"
+    com_x, force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string_1, push_samples_result = \
         mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_rx, second_to_first_force_rx, 1, result_string)
     result_string = result_string_1
+    push_samples += push_samples_result
     result_string += "\n\nnumber of pushes: " + str(len(force_magn_pairs))
 
     #third force and fourth forces
@@ -284,9 +311,10 @@ def mass_moments_finder():
     fourth_to_third_force_ry = third_force_ry - fourth_force_ry
 
     result_string += "\n\n\npushing along z axis"
-    com_y, force_magn_pairs_unused, angular_velocity_changes_divided_by_dt_unused, result_string_1 = \
+    com_y, force_magn_pairs_unused, angular_velocity_changes_divided_by_dt_unused, result_string_1, push_samples_result = \
         mass_and_com_one_axis(pos1, dir3, pos4, dir4, third_force_ry, fourth_to_third_force_ry, 0, result_string)
     result_string = result_string_1
+    push_samples += push_samples_result
     result_string += "\n\nnumber of pushes: " + str(len(force_magn_pairs))
 
     print("\n\n\n\ncenter of mass result:")
@@ -348,12 +376,45 @@ def mass_moments_finder():
     print("\t",actual_I)
     result_string += "\n\nactual moment of inertia value: " + str(actual_I)
 
-    return result_string
+    result_string += "\n"
+    return result_string, push_samples
 
-result_string = mass_moments_finder()
+result_string, push_samples = mass_moments_finder()
 
 p.disconnect()
 
 print("done")
-print("\n\n\n\n\n")
-print(result_string)
+
+
+def write_results(result_string, push_samples):
+    # make directory for simulation files
+    testNum = 1
+    while os.path.exists("test" + str(testNum)):
+        testNum += 1
+    dir_name = "test" + str(testNum)
+    os.mkdir(dir_name)
+
+    # set up data storage
+    result_file = os.path.join(dir_name, "test " + str(testNum) + " results.txt")
+    push_samples_file = os.path.join(dir_name, "push_samples.csv")
+    result_records = open(result_file, "w")
+    push_samples_records = open(push_samples_file, "w")
+    result_records.write(result_string)
+
+    push_samples_records.write("force1" + "_x_loc")
+    push_samples_records.write(",force1" + "_y_loc")
+    push_samples_records.write(",force2" + "_x_loc")
+    push_samples_records.write(",force2" + "_y_Loc")
+    push_samples_records.write(",force1" + "_x_dir")
+    push_samples_records.write(",force1" + "_y_dir")
+    push_samples_records.write(",force2" + "_x_dir")
+    push_samples_records.write(",force2" + "_y_dir")
+    push_samples_records.write(",post-push object" + "_velocity_x")
+    push_samples_records.write(",post-push object" + "_velocity_y")
+    push_samples_records.write(",post-push object" + "_angular_velocity_z")
+    push_samples_records.write(push_samples)
+
+    result_records.close()
+    push_samples_records.close()
+
+write_results(result_string, push_samples)
