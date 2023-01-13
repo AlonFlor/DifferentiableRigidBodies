@@ -1,6 +1,6 @@
 import pybullet as p
 import numpy as np
-import draw_data
+#import draw_data
 import scipy
 
 import time
@@ -164,7 +164,7 @@ def find_balancing_external_force_pair(first_force_magn, pos1, dir1, pos2, dir2)
     return result[0], result[1], force_magn_pairs_found, angular_velocity_changes_found, frictions
 
 
-def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second_to_first_force_along_axis, velocity_axis):
+def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second_to_first_force_along_axis, velocity_axis, result_string):
     # magnitudes of the force at each location
     first_force_magns = []
     second_force_magns = []
@@ -184,8 +184,6 @@ def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second
     # friction info. Friction should be constant across all rounds
     frictions = []
     translation_only_motion_frictions = []
-
-    print("start")
 
     for i in np.arange(0, limit, stride):
         second_force_magn, velocity_result, force_magn_pairs_found, angular_velocity_changes_found, frictions_result = \
@@ -216,7 +214,7 @@ def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second
         com_pos_found_along_axis = first_force_along_axis - com_to_first_force_along_axis
         com_pos_found_along_axis_list.append(com_pos_found_along_axis)
 
-    # draw stuff
+    '''# draw stuff
     #actual_com_along_axis_list = [actual_com[0]] * len(com_pos_found_along_axis_list)
     #draw_data.plot_data_two_curves(first_force_magns[1:], com_pos_found_along_axis_list, actual_com_along_axis_list)
     #draw_data.plot_data(forces, delta_velocities_divided_by_dt)
@@ -233,22 +231,30 @@ def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second
     print("\ty-axis friction")
     draw_data.plot_data(first_force_magns, translation_only_motion_frictions_y)
     print("\tfriction magnitude")
-    draw_data.plot_data(first_force_magns, translation_only_motion_frictions_magn)
+    draw_data.plot_data(first_force_magns, translation_only_motion_frictions_magn)'''
 
     # get mass
     print("\n\nprocessing mass")
+    result_string += "\nmass result"
     velocity_regression_result = scipy.stats.linregress(forces, delta_velocities_divided_by_dt)
     print("slope:", velocity_regression_result.slope)
+    result_string += "\n\tslope: " + str(velocity_regression_result.slope)
     print("intercept:", velocity_regression_result.intercept)
+    result_string += "\n\tintercept: " + str(velocity_regression_result.intercept)
 
     print("mass result:", 1. / velocity_regression_result.slope)
+    result_string += "\n\n\tmass result: " + str(1. / velocity_regression_result.slope)
     print("translational mu result:", velocity_regression_result.intercept / -9.8)
+    result_string += "\n\ttranslational mu result: " + str(velocity_regression_result.intercept / -9.8)
 
     print("actual mass value:")
+    result_string += "\nactual mass value: " + str(actual_mass)
     print("\t", actual_mass)
     # return the com for this axis, the force magnitude pairs, and the angular velocities divided by dt
-    return com_pos_found_along_axis_list[len(com_pos_found_along_axis_list) - 1], force_magn_pairs, angular_velocity_changes_divided_by_dt
+    return com_pos_found_along_axis_list[len(com_pos_found_along_axis_list) - 1], force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string
 def mass_moments_finder():
+
+    result_string = ""
 
     #get locations
     pos1 = (0., 0., 0.5)
@@ -262,8 +268,11 @@ def mass_moments_finder():
     second_force_rx = external_force_contact_location_second_force[0]
     second_to_first_force_rx = first_force_rx - second_force_rx
 
-    com_x, force_magn_pairs, angular_velocity_changes_divided_by_dt = \
-        mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_rx, second_to_first_force_rx, 1)
+    result_string += "\npushing along y axis"
+    com_x, force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string_1 = \
+        mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_rx, second_to_first_force_rx, 1, result_string)
+    result_string = result_string_1
+    result_string += "\n\nnumber of pushes: " + str(len(force_magn_pairs))
 
     #third force and fourth forces
     third_force_ry = external_force_contact_location_first_force[1]
@@ -274,16 +283,25 @@ def mass_moments_finder():
     fourth_force_ry = external_force_contact_location_fourth_force[1]
     fourth_to_third_force_ry = third_force_ry - fourth_force_ry
 
-    com_y, force_magn_pairs_unused, angular_velocity_changes_divided_by_dt_unused = \
-        mass_and_com_one_axis(pos1, dir3, pos4, dir4, third_force_ry, fourth_to_third_force_ry, 0)
+    result_string += "\n\n\npushing along z axis"
+    com_y, force_magn_pairs_unused, angular_velocity_changes_divided_by_dt_unused, result_string_1 = \
+        mass_and_com_one_axis(pos1, dir3, pos4, dir4, third_force_ry, fourth_to_third_force_ry, 0, result_string)
+    result_string = result_string_1
+    result_string += "\n\nnumber of pushes: " + str(len(force_magn_pairs))
 
-    print("\n\ncenter of mass result:")
+    print("\n\n\n\ncenter of mass result:")
     print("\t", com_x, com_y)
     print("actual value:")
     print("\t", actual_com[0], actual_com[1])
 
+    result_string += "\n\n\n\ncenter of mass result:"
+    result_string += "\n\t(" + str(com_x) + "," + str(com_y) + ")"
+    result_string += "\nactual center of mass location:"
+    result_string += "\n\t(" + str(actual_com[0]) + "," + str(actual_com[1]) + ")"
+
 
     print("\n\n\n\nprocessing moment of inertia using the found center of mass")
+    result_string += "\n\n\n\nmoment of inertia result using the found center of mass"
     pushing_torques = []
     found_com = np.array([com_x, com_y, external_force_contact_location_first_force[2]])
     com_to_first_force = np.array(list(external_force_contact_location_first_force)) - found_com
@@ -294,15 +312,21 @@ def mass_moments_finder():
                                np.cross(com_to_second_force, np.array([dir2[0]*second_force_magn, dir2[1]*second_force_magn, dir2[2]*second_force_magn]))[2])
     angular_velocity_regression_result = scipy.stats.linregress(pushing_torques, angular_velocity_changes_divided_by_dt)
     print("slope:", angular_velocity_regression_result.slope)
+    result_string += "\n\tslope: " + str(angular_velocity_regression_result.slope)
     print("intercept:", angular_velocity_regression_result.intercept)
+    result_string += "\n\tintercept: " + str(angular_velocity_regression_result.intercept)
 
     print("moment of inertia result:", 1./angular_velocity_regression_result.slope)
+    result_string += "\n\n\tmoment of inertia result: " + str(1./angular_velocity_regression_result.slope)
     print("intercept should be at the origin.\n")
+    result_string += "\n\tintercept should be at the origin."
     print("actual moment of inertia value:")
     print("\t",actual_I)
+    result_string += "\n\nactual moment of inertia value: " + str(actual_I)
 
 
     print("\n\n\n\nprocessing moment of inertia using the actual center of mass")
+    result_string += "\n\n\n\nmoment of inertia result using the actual center of mass"
     pushing_torques = []
     com_to_first_force = np.array(list(external_force_contact_location_first_force)) - actual_com
     com_to_second_force = np.array(list(external_force_contact_location_second_force)) - actual_com
@@ -312,14 +336,24 @@ def mass_moments_finder():
                                np.cross(com_to_second_force, np.array([dir2[0]*second_force_magn, dir2[1]*second_force_magn, dir2[2]*second_force_magn]))[2])
     angular_velocity_regression_result = scipy.stats.linregress(pushing_torques, angular_velocity_changes_divided_by_dt)
     print("slope:", angular_velocity_regression_result.slope)
+    result_string += "\n\tslope: " + str(angular_velocity_regression_result.slope)
     print("intercept:", angular_velocity_regression_result.intercept)
+    result_string += "\n\tintercept: " + str(angular_velocity_regression_result.intercept)
 
     print("moment of inertia result:", 1./angular_velocity_regression_result.slope)
+    result_string += "\n\n\tmoment of inertia result: " + str(1./angular_velocity_regression_result.slope)
     print("intercept should be at the origin.\n")
+    result_string += "\n\tintercept should be at the origin."
     print("actual moment of inertia value:")
     print("\t",actual_I)
+    result_string += "\n\nactual moment of inertia value: " + str(actual_I)
 
-mass_moments_finder()
+    return result_string
+
+result_string = mass_moments_finder()
 
 p.disconnect()
+
 print("done")
+print("\n\n\n\n\n")
+print(result_string)
