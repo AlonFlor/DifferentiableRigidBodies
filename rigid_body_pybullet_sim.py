@@ -1,17 +1,31 @@
 import pybullet as p
 import numpy as np
 #import draw_data
+import make_URDF
 import scipy
 import os
 
 import time
+
+# make directory for simulation files
+test_num = 1
+while os.path.exists("test" + str(test_num)):
+    test_num += 1
+test_dir = "test" + str(test_num)
+os.mkdir(test_dir)
+
+object_name = "hammer"
+#object_name = "uniform_hammer"
+
+#make the file being tested
+make_URDF.write_URDF(object_name, test_dir)
 
 physicsClient = p.connect(p.DIRECT)
 #physicsClient = p.connect(p.GUI)
 
 p.setGravity(0,0,-9.8)
 
-objectID = p.loadURDF("urdf and meshes\hammer.urdf")
+objectID = p.loadURDF(test_dir + "\\" + object_name + ".urdf")
 
 
 
@@ -20,20 +34,18 @@ startOrientation = p.getQuaternionFromEuler([np.pi/2,0,0])
 p.resetBasePositionAndOrientation(objectID, startPos, startOrientation)
 
 planeID = p.loadURDF("urdf and meshes\plane.urdf")
-print("plane:",planeID)
 print("object:",objectID)
+print("plane:",planeID)
 #p.changeDynamics(planeID, -1, mass=0)
 
-dynamics = p.getDynamicsInfo(objectID, -1)
-print("dynamics:",dynamics)
-dynamics = p.getDynamicsInfo(planeID, -1)
-print("dynamics:",dynamics)
+#dynamics = p.getDynamicsInfo(objectID, -1)
+#print("dynamics:",dynamics)
+#dynamics = p.getDynamicsInfo(planeID, -1)
+#print("dynamics:",dynamics)
 dt = 1./240.
 
 #time.sleep(20)
 
-#for i in range (2400):
-    #if i < 100:
 def run_pybullet_one_time_step(first_force,second_force):
     #p.applyExternalForce(objectID, 0, (0., 400., 0.), (0., 0., 0.5), p.WORLD_FRAME)
     #p.applyExternalForce(objectID, 0, (0., 800., 0.), (20., 0., 0.5), p.WORLD_FRAME)
@@ -82,24 +94,32 @@ def run_pybullet_one_time_step(first_force,second_force):
 
     return velocity, angular_velocity, total_friction
 
-#p.setTimeStep()
 
 def get_actual_mass_com_and_moment_of_inertia():
-    count = 1
-    mass = 1. #base mass
-    loc_weighed_mass = np.array(list(p.getBasePositionAndOrientation(objectID)[0])) #base location
+    #count = 1
+    masses = []
+    mass = p.getDynamicsInfo(objectID, -1)[0] #base mass
+    masses.append(mass)
+    #print(count-1,mass,p.getDynamicsInfo(objectID,-1)[1])
+
+    loc_weighed_mass = masses[0]*np.array(list(p.getBasePositionAndOrientation(objectID)[0])) #base location
     num_links = p.getNumJoints(objectID) #excludes base
+
     for i in range(num_links):
-        this_mass = 1.#p.getDynamicsInfo(objectID, -1)[0]
+        this_mass = p.getDynamicsInfo(objectID, i)[0]
+        masses.append(this_mass)
+        #print(count,this_mass,p.getDynamicsInfo(objectID,i)[1])
+
         this_loc = p.getLinkState(objectID, i)[0]
         mass += this_mass
         loc_weighed_mass += np.array(list(this_loc))*this_mass
-        count += 1
-    com = loc_weighed_mass/count
 
-    I = 1./6. + 1*(np.linalg.norm(np.array(list(p.getBasePositionAndOrientation(objectID)[0])) - com)**2)
+        #count += 1
+    com = loc_weighed_mass/mass
+
+    I = masses[0]/6. + masses[0]*(np.linalg.norm(np.array(list(p.getBasePositionAndOrientation(objectID)[0])) - com)**2)
     for i in range(num_links):
-        I += 1./6. + 1*(np.linalg.norm(p.getLinkState(objectID, i)[0] - com) ** 2)
+        I += masses[i+1]/6. + masses[i+1]*(np.linalg.norm(p.getLinkState(objectID, i)[0] - com) ** 2)
 
     return mass, com, I
 
@@ -383,17 +403,10 @@ result_string, push_samples = mass_moments_finder()
 
 p.disconnect()
 
-print("done")
+print("Finished with simulation. Writing result files.")
 
 
-def write_results(result_string, push_samples):
-    # make directory for simulation files
-    testNum = 1
-    while os.path.exists("test" + str(testNum)):
-        testNum += 1
-    dir_name = "test" + str(testNum)
-    os.mkdir(dir_name)
-
+def write_results(result_string, push_samples, dir_name, testNum):
     # set up data storage
     result_file = os.path.join(dir_name, "test " + str(testNum) + " results.txt")
     push_samples_file = os.path.join(dir_name, "push_samples.csv")
@@ -417,4 +430,5 @@ def write_results(result_string, push_samples):
     result_records.close()
     push_samples_records.close()
 
-write_results(result_string, push_samples)
+write_results(result_string, push_samples, test_dir, test_num)
+print("Done.")

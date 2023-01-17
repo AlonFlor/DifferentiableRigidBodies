@@ -363,7 +363,19 @@ def read_combined_boxes_rigid_body_file(file_loc):
         info.append((float(x), float(y), float(z)))
     return info
 
-def write_urdf(object_name, urdf_str):
-    file = open("urdf and meshes\\"+object_name+".urdf", "w", encoding="utf-8")
+def read_combined_boxes_extra_info_rigid_body_file(file_loc):
+    file = open(file_loc, "r", encoding="utf-8")
+    stuff = file.readlines()
+    file.close()
+
+    info = []
+    for line in stuff[1:]:
+        line_stripped = line.strip()
+        x,y,z,mass,friction = line_stripped.split(",")
+        info.append((float(x), float(y), float(z), float(mass), float(friction)))
+    return info
+
+def write_urdf(object_loc, object_name, urdf_str):
+    file = open(os.path.join(object_loc, object_name) +".urdf", "w", encoding="utf-8")
     file.write(urdf_str)
     file.close()
