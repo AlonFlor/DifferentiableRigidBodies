@@ -7,42 +7,7 @@ import os
 
 import time
 
-# make directory for simulation files
-test_num = 1
-while os.path.exists("test" + str(test_num)):
-    test_num += 1
-test_dir = "test" + str(test_num)
-os.mkdir(test_dir)
 
-object_name = "hammer"
-#object_name = "uniform_hammer"
-
-#make the file being tested
-make_URDF.write_URDF(object_name, test_dir)
-
-physicsClient = p.connect(p.DIRECT)
-#physicsClient = p.connect(p.GUI)
-
-p.setGravity(0,0,-9.8)
-
-objectID = p.loadURDF(test_dir + "\\" + object_name + ".urdf")
-
-
-
-startPos = [0,0,0.5]
-startOrientation = p.getQuaternionFromEuler([np.pi/2,0,0])
-p.resetBasePositionAndOrientation(objectID, startPos, startOrientation)
-
-planeID = p.loadURDF("urdf and meshes\plane.urdf")
-print("object:",objectID)
-print("plane:",planeID)
-#p.changeDynamics(planeID, -1, mass=0)
-
-#dynamics = p.getDynamicsInfo(objectID, -1)
-#print("dynamics:",dynamics)
-#dynamics = p.getDynamicsInfo(planeID, -1)
-#print("dynamics:",dynamics)
-dt = 1./240.
 
 #time.sleep(20)
 
@@ -123,7 +88,7 @@ def get_actual_mass_com_and_moment_of_inertia():
 
     return mass, com, I
 
-actual_mass, actual_com, actual_I = get_actual_mass_com_and_moment_of_inertia() #global values
+
 
 def try_a_force_pair(first_force, second_force):
     print("trying a force pair")
@@ -169,7 +134,7 @@ def find_balancing_external_force_pair(first_force_magn, pos1, dir1, pos2, dir2)
     angular_velocity_changes_found.append(angular_velocity_result)
 
     #get initial right part of binary search
-    second_force_magn = 2. * first_force_magn
+    second_force_magn = 4. * first_force_magn
     velocity_result, angular_velocity_result, friction, push_sample = try_a_force_pair([(dir1[0]*first_force_magn, dir1[1]*first_force_magn, dir1[2]*first_force_magn), pos1],
                                                                 [(dir2[0]*second_force_magn, dir2[1]*second_force_magn, dir2[2]*second_force_magn), pos2])
     push_samples += push_sample
@@ -297,15 +262,71 @@ def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second
     print("\t", actual_mass)
     # return the com for this axis, the force magnitude pairs, and the angular velocities divided by dt
     return com_pos_found_along_axis_list[len(com_pos_found_along_axis_list) - 1], force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string, push_samples
+
+def find_positions():
+    '''find locations where forces can be exerted'''
+
+    #along x, find min and max x, then minimize y
+    min_x = p.getBasePositionAndOrientation(objectID)[0][0]
+    max_x = p.getBasePositionAndOrientation(objectID)[0][0]
+    num_links = p.getNumJoints(objectID)  # excludes base
+    for i in range(num_links):
+        x = p.getLinkState(objectID, i)[0][0]
+        if x<min_x:
+            min_x = x
+        if x>max_x:
+            max_x = x
+    y_for_min_x = None
+    y_for_max_x = None
+    if min_x == p.getBasePositionAndOrientation(objectID)[0][0]:
+        y_for_min_x = p.getBasePositionAndOrientation(objectID)[0][1]
+    if max_x == p.getBasePositionAndOrientation(objectID)[0][0]:
+        y_for_max_x = p.getBasePositionAndOrientation(objectID)[0][1]
+    for i in range(num_links):
+        y = p.getLinkState(objectID, i)[0][1]
+        if min_x == p.getLinkState(objectID, i)[0][0]:
+            if y_for_min_x is None:
+                y_for_min_x = y
+            elif y<=y_for_min_x:
+                y_for_min_x = y
+        if max_x == p.getLinkState(objectID, i)[0][0]:
+            if y_for_max_x is None:
+                y_for_max_x = y
+            elif y<=y_for_max_x:
+                y_for_max_x = y
+
+    pos_min_x = (min_x, y_for_min_x, 0.5)
+    pos_max_x = (max_x, y_for_max_x, 0.5)
+
+    # along y, find max y, then minimize x
+    max_y = p.getBasePositionAndOrientation(objectID)[0][1]
+    num_links = p.getNumJoints(objectID)  # excludes base
+    for i in range(num_links):
+        y = p.getLinkState(objectID, i)[0][1]
+        if y > max_y:
+            max_y = y
+    x_for_max_y = None
+    if max_y == p.getBasePositionAndOrientation(objectID)[0][1]:
+        x_for_max_y = p.getBasePositionAndOrientation(objectID)[0][0]
+    for i in range(num_links):
+        x = p.getLinkState(objectID, i)[0][0]
+        if max_y == p.getLinkState(objectID, i)[0][1]:
+            if x_for_max_y is None:
+                x_for_max_y = x
+            elif x <= x_for_max_y:
+                x_for_max_y = x
+    pos_max_y = (x_for_max_y, max_y, 0.5)
+
+    return pos_min_x, pos_max_x, pos_max_y
+
 def mass_moments_finder():
 
     result_string = ""
     push_samples = ""
 
     #get locations
-    pos1 = (0., 0., 0.5)
+    pos1, pos2, pos4 = find_positions()
     dir1 = (0., 1., 0.)
-    pos2 = (20., 0., 0.5)
     dir2 = (0., 1., 0.)
     external_force_contact_location_first_force = pos1
     first_force_rx = external_force_contact_location_first_force[0]
@@ -325,7 +346,6 @@ def mass_moments_finder():
     third_force_ry = external_force_contact_location_first_force[1]
     dir3 = (1., 0., 0.)
     dir4 = (1., 0., 0.)
-    pos4 = (4., 11., 0.5)
     external_force_contact_location_fourth_force = pos4
     fourth_force_ry = external_force_contact_location_fourth_force[1]
     fourth_to_third_force_ry = third_force_ry - fourth_force_ry
@@ -399,11 +419,7 @@ def mass_moments_finder():
     result_string += "\n"
     return result_string, push_samples
 
-result_string, push_samples = mass_moments_finder()
 
-p.disconnect()
-
-print("Finished with simulation. Writing result files.")
 
 
 def write_results(result_string, push_samples, dir_name, testNum):
@@ -430,5 +446,58 @@ def write_results(result_string, push_samples, dir_name, testNum):
     result_records.close()
     push_samples_records.close()
 
-write_results(result_string, push_samples, test_dir, test_num)
-print("Done.")
+
+
+
+actual_mass = actual_com = actual_I = None
+objectID = None
+dt = 1./240.
+startPos = [0, 0, 0.5]
+startOrientation = p.getQuaternionFromEuler([np.pi / 2, 0, 0])
+def run_full_test(object_name):
+    # make directory for simulation files
+    test_num = 1
+    while os.path.exists("test" + str(test_num)):
+        test_num += 1
+    test_dir = "test" + str(test_num)
+    os.mkdir(test_dir)
+
+    #make the file being tested
+    make_URDF.write_URDF(object_name, test_dir)
+
+    physicsClient = p.connect(p.DIRECT)
+    #physicsClient = p.connect(p.GUI)
+    p.setGravity(0,0,-9.8)
+
+    global objectID
+    objectID = p.loadURDF(test_dir + "\\" + object_name + ".urdf")
+    p.resetBasePositionAndOrientation(objectID, startPos, startOrientation)
+
+    planeID = p.loadURDF("urdf and meshes\plane.urdf")
+    print("object:",objectID)
+    print("plane:",planeID)
+
+    global actual_mass
+    global actual_com
+    global actual_I
+    actual_mass, actual_com, actual_I = get_actual_mass_com_and_moment_of_inertia() #global values
+    result_string, push_samples = mass_moments_finder()
+
+    p.disconnect()
+
+    print("Finished with simulation. Writing result files.")
+
+    write_results(result_string, push_samples, test_dir, test_num)
+    print("Done.")
+
+
+run_full_test("spray_gun_uniform")
+run_full_test("spray_gun")
+run_full_test("snack_uniform")
+run_full_test("snack")
+run_full_test("book_uniform")
+run_full_test("book")
+run_full_test("wrench_uniform")
+run_full_test("wrench")
+run_full_test("hammer_uniform")
+run_full_test("hammer")
