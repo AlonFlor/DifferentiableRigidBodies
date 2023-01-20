@@ -2,6 +2,7 @@ import pybullet as p
 import numpy as np
 #import draw_data
 import make_URDF
+import file_handling
 import scipy
 import os
 
@@ -256,12 +257,13 @@ def mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_along_axis, second
     result_string += "\n\n\tmass result: " + str(1. / velocity_regression_result.slope)
     print("translational mu result:", velocity_regression_result.intercept / -9.8)
     result_string += "\n\ttranslational mu result: " + str(velocity_regression_result.intercept / -9.8)
+    found_mass = 1. / velocity_regression_result.slope
 
     print("actual mass value:")
     result_string += "\nactual mass value: " + str(actual_mass)
     print("\t", actual_mass)
     # return the com for this axis, the force magnitude pairs, and the angular velocities divided by dt
-    return com_pos_found_along_axis_list[len(com_pos_found_along_axis_list) - 1], force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string, push_samples
+    return found_mass, com_pos_found_along_axis_list[len(com_pos_found_along_axis_list) - 1], force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string, push_samples
 
 def find_positions():
     '''find locations where forces can be exerted'''
@@ -336,7 +338,7 @@ def mass_moments_finder():
     second_to_first_force_rx = first_force_rx - second_force_rx
 
     result_string += "pushing along y axis"
-    com_x, force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string_1, push_samples_result = \
+    found_mass, com_x, force_magn_pairs, angular_velocity_changes_divided_by_dt, result_string_1, push_samples_result = \
         mass_and_com_one_axis(pos1, dir1, pos2, dir2, first_force_rx, second_to_first_force_rx, 1, result_string)
     result_string = result_string_1
     push_samples += push_samples_result
@@ -351,7 +353,7 @@ def mass_moments_finder():
     fourth_to_third_force_ry = third_force_ry - fourth_force_ry
 
     result_string += "\n\n\npushing along z axis"
-    com_y, force_magn_pairs_unused, angular_velocity_changes_divided_by_dt_unused, result_string_1, push_samples_result = \
+    found_mass, com_y, force_magn_pairs_unused, angular_velocity_changes_divided_by_dt_unused, result_string_1, push_samples_result = \
         mass_and_com_one_axis(pos1, dir3, pos4, dir4, third_force_ry, fourth_to_third_force_ry, 0, result_string)
     result_string = result_string_1
     push_samples += push_samples_result
@@ -391,6 +393,7 @@ def mass_moments_finder():
     print("actual moment of inertia value:")
     print("\t",actual_I)
     result_string += "\n\nactual moment of inertia value: " + str(actual_I)
+    found_I = 1./angular_velocity_regression_result.slope
 
 
     print("\n\n\n\nprocessing moment of inertia using the actual center of mass")
@@ -417,7 +420,7 @@ def mass_moments_finder():
     result_string += "\n\nactual moment of inertia value: " + str(actual_I)
 
     result_string += "\n"
-    return result_string, push_samples
+    return result_string, push_samples, found_mass, found_com, found_I
 
 
 
@@ -481,13 +484,28 @@ def run_full_test(object_name):
     global actual_com
     global actual_I
     actual_mass, actual_com, actual_I = get_actual_mass_com_and_moment_of_inertia() #global values
-    result_string, push_samples = mass_moments_finder()
-
-    p.disconnect()
+    result_string, push_samples, found_mass, found_com, found_I = mass_moments_finder()
 
     print("Finished with simulation. Writing result files.")
 
     write_results(result_string, push_samples, test_dir, test_num)
+
+    print("Finished writing result files. Writing visualization files.")
+
+    shapes_loc_data = [np.array(list(p.getBasePositionAndOrientation(objectID)[0]))]
+    masses_data = [p.getDynamicsInfo(objectID, -1)[0]]
+    frictions_data = [p.getDynamicsInfo(objectID, -1)[1]]
+    num_links = p.getNumJoints(objectID)  # excludes base
+    for i in range(num_links):
+        shapes_loc_data.append(np.array(list(p.getLinkState(objectID, i)[0])))
+        masses_data.append(p.getDynamicsInfo(objectID, i)[0])
+        frictions_data.append(p.getDynamicsInfo(objectID,i)[1])
+
+    file_handling.write_obj_and_mtl_one_frame(shapes_loc_data, masses_data, frictions_data, actual_com, found_com, object_name, test_dir, "mass")
+    file_handling.write_obj_and_mtl_one_frame(shapes_loc_data, masses_data, frictions_data, actual_com, found_com, object_name, test_dir, "friction")
+
+    p.disconnect()
+
     print("Done.")
 
 
